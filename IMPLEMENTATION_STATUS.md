@@ -21,14 +21,25 @@
 - [ ] Confirmar build/testes no GitHub Actions; execução local indisponível (sem Maven/JDK 21).
 - [ ] QA visual/fluxos autenticados em browser.
 
-## Fases futuras
+## Fase 3 — Instalador e integrações
 
-- [ ] Entrega de convites por email, verificação de email, recuperação de password e renovação de sessão.
-- [ ] Limitador distribuído, métricas operacionais aprofundadas e revisão de segurança de produção.
-- [ ] Instalador Ubuntu 24.04, configuração inicial, backup/restauro, atualização e rollback.
-- [ ] Webhooks e mapeamento de repositórios, commits e PRs GitHub.
-- [ ] Planeador IA opcional e integração Nord SaaS após revisão do contrato de API.
-- [ ] Localização inglesa e documentação de operação/instalação.
+- [x] Instalador idempotente para Ubuntu 24.04, geração de segredos e preservação de `.env` existente.
+- [x] Assistente de primeira configuração para criar o administrador e workspace.
+- [x] Scripts de backup, restauro confirmado, atualização com cópia prévia e diagnóstico/reparação.
+- [x] GitHub: associação verificada de repositórios, atividade de commits/PRs e webhooks com HMAC e deduplicação.
+- [x] Referências explícitas de tarefas nos commits/PRs; eventos criam notificações e nunca concluem tarefas.
+- [x] Planeador IA opcional com proposta revista antes de criar eventos.
+- [x] Adaptador Nord SaaS deixado como não configurado, sem inventar contrato ou endpoints.
+
+## Fase 4 — Preparação para produção
+
+- [x] Testes de integração para APIs, isolamento de workspaces, setup inicial e validação de referências.
+- [x] Smoke tests do instalador, sintaxe dos scripts e checks JavaScript integrados no CI.
+- [x] Documentação de instalação, variáveis, integrações, operação e recuperação.
+- [ ] Executar build e testes Java 21 no GitHub Actions.
+- [ ] Exercitar instalação nova, atualização e restauro numa VM Ubuntu 24.04 com Docker/PostgreSQL.
+- [ ] QA visual/interação em browser e completar tradução inglesa.
+- [ ] Revisão de segurança operacional antes de exposição pública (TLS, segredo/rotação de tokens, limites distribuídos e métricas).
 
 ## Verificação disponível
 

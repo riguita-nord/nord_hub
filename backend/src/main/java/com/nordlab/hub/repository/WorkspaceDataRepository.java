@@ -10,4 +10,5 @@ public interface WorkspaceDataRepository extends JpaRepository<WorkspaceData,UUI
     List<WorkspaceData> findAllByWorkspaceIdAndRecordTypeOrderByUpdatedAtDesc(UUID workspaceId,String recordType);
     Optional<WorkspaceData> findByIdAndWorkspaceIdAndRecordType(UUID id,UUID workspaceId,String recordType);
     boolean existsByIdAndWorkspaceIdAndRecordType(UUID id,UUID workspaceId,String recordType);
+    List<WorkspaceData> findAllByRecordType(String recordType);
 }

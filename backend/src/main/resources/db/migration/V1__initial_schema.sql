@@ -77,3 +77,4 @@ CREATE TABLE gateway_audit_log (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX idx_gateway_audit_created ON gateway_audit_log(created_at DESC);
+

@@ -83,6 +83,17 @@ class ApiIntegrationTest {
             .andExpect(status().isGone());
     }
 
+    @Test void installerBootstrapCreatesTheConfiguredGlobalAdministrator() throws Exception {
+        mvc.perform(post("/api/v1/setup/bootstrap").contentType(MediaType.APPLICATION_JSON)
+                .content(mapper.writeValueAsString(Map.of("setupToken","test-only-setup-token-which-is-over-thirty-two-bytes",
+                    "email","admin@nord.test","password","Strong-passphrase-2026","displayName","Hub Admin","workspaceName","Nord-Lab"))))
+            .andExpect(status().isCreated()).andExpect(jsonPath("$.user.globalAdmin").value(true));
+        mvc.perform(post("/api/v1/setup/bootstrap").contentType(MediaType.APPLICATION_JSON)
+                .content(mapper.writeValueAsString(Map.of("setupToken","test-only-setup-token-which-is-over-thirty-two-bytes",
+                    "email","admin@nord.test","password","Strong-passphrase-2026","displayName","Hub Admin","workspaceName","Nord-Lab"))))
+            .andExpect(status().isGone());
+    }
+
     private JsonNode register(String email) throws Exception {
         MvcResult result=mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
                 .content(mapper.writeValueAsString(Map.of("email",email,"password","Strong-passphrase-2026","displayName","Test User","workspaceName","Test space"))))
