@@ -25,7 +25,7 @@ public class SecurityConfig {
         CorsConfiguration config=new CorsConfiguration();
         config.setAllowedOrigins(Arrays.stream(origins.split(",")).map(String::trim).filter(s->!s.isEmpty()).toList());
         config.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
-        config.setAllowedHeaders(List.of("Authorization","Content-Type","Accept","X-Request-Id"));
+        config.setAllowedHeaders(List.of("Authorization","Content-Type","Accept","X-Request-Id","X-Hub-Signature-256","X-GitHub-Delivery","X-GitHub-Event"));
         config.setExposedHeaders(List.of("X-Request-Id","Retry-After"));
         config.setAllowCredentials(false);config.setMaxAge(3600L);
         UrlBasedCorsConfigurationSource source=new UrlBasedCorsConfigurationSource();source.registerCorsConfiguration("/api/**",config);return source;
@@ -35,7 +35,7 @@ public class SecurityConfig {
             .cors(Customizer.withDefaults())
             .sessionManagement(s->s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .formLogin(f->f.disable()).httpBasic(b->b.disable())
-            .authorizeHttpRequests(a->a.requestMatchers("/api/v1/config","/api/v1/auth/**","/api/v1/gateway/status","/api/v1/health","/actuator/health","/actuator/health/**").permitAll().anyRequest().authenticated())
+            .authorizeHttpRequests(a->a.requestMatchers("/api/v1/config","/api/v1/setup/status","/api/v1/setup/bootstrap","/api/v1/integrations/github/webhook","/api/v1/auth/**","/api/v1/gateway/status","/api/v1/health","/actuator/health","/actuator/health/**").permitAll().anyRequest().authenticated())
             .exceptionHandling(e->e.authenticationEntryPoint((request,response,exception)->{response.setStatus(401);response.setContentType("application/json");response.getWriter().write("{\"error\":\"unauthorized\",\"message\":\"Authentication is required\"}");})
                 .accessDeniedHandler((request,response,exception)->{response.setStatus(403);response.setContentType("application/json");response.getWriter().write("{\"error\":\"forbidden\",\"message\":\"You do not have permission to perform this action\"}");}))
             .addFilterBefore(jwtFilter,UsernamePasswordAuthenticationFilter.class);

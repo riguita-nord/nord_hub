@@ -47,8 +47,20 @@ nordhub:
     jwt-secret: ${NORD_HUB_JWT_SECRET:}
     token-ttl: ${NORD_HUB_TOKEN_TTL:PT30M}
     admin-emails: ${NORD_HUB_ADMIN_EMAILS:}
+    setup-token: ${NORD_HUB_SETUP_TOKEN:}
   cors:
     allowed-origins: ${NORD_HUB_CORS_ORIGINS:http://localhost:8080,http://127.0.0.1:8080}
   gateway:
     requests-per-minute: ${NORD_HUB_REQUESTS_PER_MINUTE:120}
     auth-requests-per-minute: ${NORD_HUB_AUTH_REQUESTS_PER_MINUTE:10}
+  github:
+    token: ${NORD_HUB_GITHUB_TOKEN:}
+    api-url: ${NORD_HUB_GITHUB_API_URL:https://api.github.com}
+    webhook-secret: ${NORD_HUB_GITHUB_WEBHOOK_SECRET:}
+  ai:
+    api-key: ${NORD_HUB_AI_API_KEY:}
+    base-url: ${NORD_HUB_AI_BASE_URL:https://api.openai.com/v1}
+    model: ${NORD_HUB_AI_MODEL:gpt-4o-mini}
+  nord-saas:
+    base-url: ${NORD_HUB_NORD_SAAS_URL:}
+    session-token: ${NORD_HUB_NORD_SAAS_SESSION_TOKEN:}

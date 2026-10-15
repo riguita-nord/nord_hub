@@ -1,33 +1,56 @@
 # Nord Hub
 
-Espaço de trabalho para organizar projetos, tarefas e contexto de desenvolvimento.
+Espaço de trabalho para programadores organizarem projetos, tarefas, calendário, ideias e pontos de retoma. A aplicação usa Java 21/Spring Boot, PostgreSQL e uma interface HTML/CSS/JavaScript servida pelo Nginx.
 
-## Executar localmente
+## Instalação em Ubuntu 24.04
 
-Requer Docker Compose. Copia `.env.example` para `.env` e define uma password de base de dados e uma chave JWT aleatórias (mínimo de 32 bytes):
+Na pasta do repositório, executa como root:
 
 ```bash
-cp .env.example .env
-docker compose up --build
+sudo ./install.sh
 ```
 
-Abre `http://localhost:8080`. O Flyway cria o esquema PostgreSQL no primeiro arranque. Para desenvolvimento apenas do frontend, também podes servir a pasta com `python3 -m http.server 8080`; sem a API, a aplicação abre em modo de demonstração e guarda os dados no navegador.
+O instalador verifica o sistema, instala Docker Engine e Compose quando necessário, cria segredos aleatórios sem substituir uma configuração existente, inicia os serviços e testa a API. Abre `http://<servidor>:8080` e conclui o assistente para criar o primeiro administrador. O instalador mostra o token de configuração apenas no terminal. Após criar a conta, remove `NORD_HUB_SETUP_TOKEN` de `.env` e recria a API:
 
-## O que esta fase inclui
+```bash
+sudo docker compose up -d --force-recreate api
+```
 
-- Interface responsiva em português, com projetos, tarefas, calendário, planeador, ideias, notas, foco e Gateway.
-- Backend modular em Java 21 / Spring Boot e PostgreSQL, com migração inicial.
-- Registo e login por email/password, tokens JWT, hash BCrypt e espaços de trabalho isolados.
-- Permissões Owner, Editor e Viewer aplicadas na API; convites de utilização única, válidos por sete dias, com link partilhado manualmente.
-- Persistência API dos módulos, estado de manutenção, catálogo de atualizações, histórico administrativo e limites de pedidos por IP.
-- Docker Compose, proxy same-origin e workflow GitHub Actions para compilar e executar testes com Java 21.
+O instalador é repetível e preserva `.env`, volumes e dados existentes. `sudo ./install.sh --dry-run` valida o host e mostra as ações sem as executar. Para usar Docker já instalado, passa `--skip-packages`.
 
-## Limites conhecidos
+### Desenvolvimento local
 
-- O convite cria um link para partilha manual; não envia email. Não há verificação de email, recuperação de password, OAuth ou renovação de token.
-- O limite de pedidos fica em memória por instância e não substitui um rate limiter distribuído.
-- As verificações de serviços são básicas; não existe instalador Ubuntu, backup/restauro, atualização/rollback, sincronização GitHub, planeador IA ou integração Nord SaaS.
-- A interface continua em português; tradução inglesa e QA visual de browser ainda estão pendentes.
-- A fase 2 está em PR de revisão. O build Java e os testes devem ser confirmados pelo CI GitHub; o ambiente local atual não tem Maven nem JDK 21.
+Com Java 21, Maven e PostgreSQL configurados, executa `mvn -f backend/pom.xml spring-boot:run`. Para apenas pré-visualizar a interface sem backend, executa `python3 -m http.server 8080`; essa demonstração usa `localStorage` e não é persistência de produção.
 
-Consulta [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) para a checklist e verificação.
+## Backups, restauro, atualização e reparação
+
+```bash
+sudo ./scripts/backup.sh
+sudo ./scripts/restore.sh backups/nord_hub-<data>.dump --confirm
+sudo ./scripts/update.sh
+sudo ./scripts/repair.sh
+sudo ./scripts/repair.sh --restart
+```
+
+Os backups PostgreSQL são em formato customizado, validados com `pg_restore --list` e guardados com permissões restritas. O restauro substitui a base atual: cria primeiro um backup atual e confirma que escolheste o ficheiro correto. O script de atualização cria backup antes de aplicar migrations e tenta repor a imagem anterior se a API não ficar saudável. Uma mudança de esquema incompatível pode exigir restauro manual do dump; testa atualizações em staging antes de produção.
+
+## Integrações opcionais
+
+As chaves são configuradas apenas no `.env` do servidor; a interface nunca as recebe nem as mostra.
+
+- **GitHub:** define `NORD_HUB_GITHUB_TOKEN` com um Fine-grained PAT e permissões mínimas de leitura para os repositórios necessários. Owners/Editors podem associar repositórios ao workspace; a interface consulta commits e pull requests. As referências `[nord-task:<UUID>]` em mensagens são mostradas como associação informativa; nunca concluem tarefas automaticamente.
+- **Webhooks GitHub:** define `NORD_HUB_GITHUB_WEBHOOK_SECRET` com pelo menos 32 bytes. URL: `https://<domínio>/api/v1/integrations/github/webhook`. Subscreve `push` e `pull_request` com content type JSON. A assinatura HMAC é validada, o delivery ID é deduplicado e as referências de tarefas existentes geram notificações no workspace.
+- **Planeador IA:** define `NORD_HUB_AI_API_KEY`, `NORD_HUB_AI_BASE_URL` e `NORD_HUB_AI_MODEL` para um endpoint compatível com OpenAI Chat Completions. O contexto enviado contém apenas tarefas abertas, prioridades, prazos e estimativas. Cada plano é uma proposta; só é escrito no calendário depois de aprovação explícita.
+- **Nord SaaS Lite / Forge:** foi verificado no repositório `riguita-nord/nord-saas-lite` o contrato de leitura `GET /health/ready`, `GET /api/v1/status`, `GET /api/v1/forge/projects` e `GET /api/v1/forge/releases`. A integração é apenas de leitura e só pode ser consultada pelo administrador global do Nord Hub. Configura `NORD_HUB_NORD_SAAS_URL` (origem HTTPS) e `NORD_HUB_NORD_SAAS_SESSION_TOKEN` no servidor; a sessão tem de pertencer a uma conta Nord SaaS com perfil Store ativo e acesso Forge. O token usa o header existente `X-Nord-Session`, nunca é enviado ao browser e não é guardado na base de dados. A sincronização mostra versão/saúde, estados dos projetos e releases; não altera nenhum dos dois sistemas. Sessões expiradas têm de ser renovadas pelo operador.
+
+Depois de alterar variáveis de ambiente: `sudo docker compose up -d --force-recreate api`.
+
+## Segurança e operação
+
+- Tokens, passwords e chaves ficam no servidor; define um domínio HTTPS num reverse proxy antes de expor a aplicação à Internet.
+- A primeira conta de administrador é protegida por token temporário e email pré-configurado. O bootstrap fica bloqueado depois de existir administrador.
+- JWT tem validade curta. Ainda não existe refresh token, recuperação de password, verificação de email ou OAuth por utilizador.
+- O rate limit do Gateway é por instância/IP e não substitui uma camada distribuída para ambientes com várias réplicas.
+- As migrations são versionadas no Flyway. Mantém backups fora do servidor e ensaia o restauro periodicamente.
+
+Ver [docs/operations.md](docs/operations.md) e [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) para procedimentos e limites conhecidos.

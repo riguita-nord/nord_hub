@@ -5,14 +5,25 @@ class NordHubApi {
   async request(path,{method='GET',body}={}){const headers={Accept:'application/json'};if(body!==undefined)headers['Content-Type']='application/json';if(this.token)headers.Authorization=`Bearer ${this.token}`;const response=await fetch(`${this.base}${path}`,{method,headers,body:body===undefined?undefined:JSON.stringify(body)});if(response.status===204)return null;const data=await response.json().catch(()=>({}));if(!response.ok){if(response.status===401){this.token='';sessionStorage.removeItem('nordHub.accessToken')}throw new Error(data.message||data.error||`Pedido falhou (${response.status})`)}return data}
   async login(payload){const result=await this.request('/auth/login',{method:'POST',body:payload});this.acceptSession(result);return result}
   async register(payload){const result=await this.request('/auth/register',{method:'POST',body:payload});this.acceptSession(result);return result}
+  async bootstrap(payload){const result=await this.request('/setup/bootstrap',{method:'POST',body:payload});this.acceptSession(result);return result}
   acceptSession(result){this.token=result.accessToken;this.workspaceId=result.workspace.id;sessionStorage.setItem('nordHub.accessToken',this.token);sessionStorage.setItem('nordHub.workspaceId',this.workspaceId)}
   async me(){return this.request('/auth/me')}
   async list(collection){return this.request(`/workspaces/${this.workspaceId}/${collection}`)}
   async members(){return this.request(`/workspaces/${this.workspaceId}/members`)}
+  async invitations(){return this.request(`/workspaces/${this.workspaceId}/invitations`)}
+  async revokeInvitation(id){return this.request(`/workspaces/${this.workspaceId}/invitations/${id}`,{method:'DELETE'})}
   async changeMemberRole(userId,role){return this.request(`/workspaces/${this.workspaceId}/members/${userId}/role`,{method:'PUT',body:{role}})}
   async createInvite(email,role){return this.request(`/workspaces/${this.workspaceId}/invitations`,{method:'POST',body:{email,role}})}
   async acceptInvite(token){const result=await this.request('/invitations/accept',{method:'POST',body:{token}});this.workspaceId=result.id;sessionStorage.setItem('nordHub.workspaceId',result.id);return result}
   async gateway(path,options){return this.request(`/gateway/${path}`,options)}
+  async integrationStatus(){return this.request('/integrations/status')}
+  async nordSaasSnapshot(){return this.request('/integrations/nord-saas/snapshot')}
+  async githubCatalog(){return this.request('/integrations/github/catalog')}
+  async githubRepositories(){return this.request(`/workspaces/${this.workspaceId}/github/repositories`)}
+  async linkGithubRepository(fullName,projectId){return this.request(`/workspaces/${this.workspaceId}/github/repositories`,{method:'POST',body:{fullName,projectId:projectId||null}})}
+  async unlinkGithubRepository(id){return this.request(`/workspaces/${this.workspaceId}/github/repositories/${id}`,{method:'DELETE'})}
+  async githubActivity(id){return this.request(`/workspaces/${this.workspaceId}/github/repositories/${id}/activity`)}
+  async aiPlan(availableHours){return this.request(`/workspaces/${this.workspaceId}/planner/suggestions`,{method:'POST',body:{availableHours}})}
   async create(collection,payload){return this.request(`/workspaces/${this.workspaceId}/${collection}`,{method:'POST',body:payload})}
   async patch(collection,id,payload){return this.request(`/workspaces/${this.workspaceId}/${collection}/${id}`,{method:'PATCH',body:payload})}
   async remove(collection,id){return this.request(`/workspaces/${this.workspaceId}/${collection}/${id}`,{method:'DELETE'})}

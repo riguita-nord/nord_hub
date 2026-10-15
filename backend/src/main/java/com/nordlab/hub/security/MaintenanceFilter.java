@@ -21,7 +21,7 @@ public class MaintenanceFilter extends OncePerRequestFilter {
     public MaintenanceFilter(MaintenanceService maintenance,ObjectMapper mapper){this.maintenance=maintenance;this.mapper=mapper;}
     @Override protected void doFilterInternal(HttpServletRequest request,HttpServletResponse response,FilterChain chain)throws ServletException,IOException{
         String path=request.getRequestURI(),mode=maintenance.mode();boolean api=path.startsWith("/api/v1/");boolean write=!java.util.Set.of("GET","HEAD","OPTIONS").contains(request.getMethod());
-        boolean control=path.equals("/api/v1/config")||path.equals("/api/v1/gateway/maintenance")||path.equals("/api/v1/gateway/status")||path.startsWith("/api/v1/auth/")||path.equals("/api/v1/health");
+        boolean control=path.equals("/api/v1/config")||path.startsWith("/api/v1/setup/")||path.equals("/api/v1/gateway/maintenance")||path.equals("/api/v1/gateway/status")||path.startsWith("/api/v1/auth/")||path.equals("/api/v1/health");
         boolean blocked=api&&!control&&(("READ_ONLY".equals(mode)&&write)||"FULL".equals(mode));
         if(blocked){response.setStatus(503);response.setHeader("Retry-After","300");response.setContentType(MediaType.APPLICATION_JSON_VALUE);mapper.writeValue(response.getOutputStream(),Map.of("error","maintenance","mode",mode,"message",maintenance.message()==null?"The service is temporarily unavailable":maintenance.message()));return;}
         chain.doFilter(request,response);
