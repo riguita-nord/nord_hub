@@ -40,7 +40,7 @@ public class GithubIntegrationController {
     private static final String RECORD_TYPE="GITHUB_REPOSITORY";
     private final WorkspaceDataRepository records; private final WorkspaceAccessService access; private final CurrentUserService current;
     private final JdbcTemplate jdbc; private final ObjectMapper mapper; private final RestClient github;
-    private final String token; private final byte[] webhookSecret; private final boolean aiConfigured;
+    private final String token; private final byte[] webhookSecret; private final boolean aiConfigured; private final boolean nordSaasConfigured;
 
     public GithubIntegrationController(WorkspaceDataRepository records,WorkspaceAccessService access,CurrentUserService current,
             JdbcTemplate jdbc,ObjectMapper mapper,RestClient.Builder builder,
@@ -52,6 +52,7 @@ public class GithubIntegrationController {
             @Value("${nordhub.nord-saas.session-token:}") String nordSaasToken) {
         this.records=records;this.access=access;this.current=current;this.jdbc=jdbc;this.mapper=mapper;
         this.token=token;this.webhookSecret=webhookSecret.getBytes(StandardCharsets.UTF_8);this.aiConfigured=!aiKey.isBlank();
+        this.nordSaasConfigured=!nordSaasUrl.isBlank()&&!nordSaasToken.isBlank();
         RestClient.Builder configured=builder.baseUrl(apiUrl);
         if(!token.isBlank())configured.defaultHeader(HttpHeaders.AUTHORIZATION,"Bearer "+token);
         configured.defaultHeader(HttpHeaders.ACCEPT,"application/vnd.github+json").defaultHeader("X-GitHub-Api-Version","2022-11-28");
@@ -59,7 +60,7 @@ public class GithubIntegrationController {
     }
 
     @GetMapping("/api/v1/integrations/status")
-    public IntegrationStatus status(){boolean saas=!nordSaasUrl.isBlank()&&!nordSaasToken.isBlank();return new IntegrationStatus(!token.isBlank(),webhookSecret.length>=32,aiConfigured,saas,saas?"CONFIGURED":"NOT_CONFIGURED");}
+    public IntegrationStatus status(){return new IntegrationStatus(!token.isBlank(),webhookSecret.length>=32,aiConfigured,nordSaasConfigured,nordSaasConfigured?"CONFIGURED":"NOT_CONFIGURED");}
 
 
     @GetMapping("/api/v1/workspaces/{workspaceId}/github/repositories")
