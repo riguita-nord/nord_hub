@@ -11,6 +11,7 @@ import java.security.MessageDigest;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -37,6 +38,7 @@ public class SetupController {
     }
 
     @PostMapping("/bootstrap")
+    @ResponseStatus(HttpStatus.CREATED)
     @Transactional
     public synchronized AuthService.Session bootstrap(@Valid @RequestBody BootstrapRequest request) {
         if(setupToken.length<32 || users.existsByGlobalAdminTrue())
