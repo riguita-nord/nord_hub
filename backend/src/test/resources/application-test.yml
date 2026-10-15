@@ -1,0 +1,24 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:nordhub;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+  flyway:
+    enabled: false
+  sql:
+    init:
+      mode: never
+nordhub:
+  security:
+    jwt-secret: test-only-secret-with-at-least-32-characters-1234567890
+    token-ttl: PT30M
+    admin-emails: admin@nord.test
+  cors:
+    allowed-origins: http://localhost:8080
+  gateway:
+    requests-per-minute: 10000
+    auth-requests-per-minute: 10000

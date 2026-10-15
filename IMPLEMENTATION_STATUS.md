@@ -1,38 +1,39 @@
-# Nord Hub implementation status
+# Nord Hub — estado de implementação
 
-## Repository baseline
+## Fase 1 — Frontend
 
-- The GitHub repository was empty (no files, branches, or commits).
-- Added an initial README on `main` so development can proceed from a valid base.
-- Created `frontend/phase-1-workspace` for the first product work.
+- [x] Estrutura responsiva, navegação e temas claro/escuro.
+- [x] Centro de Trabalho, projetos, tarefas, calendário, planeador, ideias, notas e modo de foco.
+- [x] Releases de projeto, equipa, notificações e vistas de Gateway.
+- [x] Modo de demonstração local e fronteira de serviço separada da interface.
+- [ ] Tradução completa português/inglês.
+- [ ] QA visual e de interação em browser (Chromium não está disponível neste ambiente).
 
-## Phase 1 — Frontend
+## Fase 2 — Backend e Gateway
 
-- [x] Responsive application shell, sidebar, header, dark/light theme
-- [x] Work Center with focus project, today's tasks, weekly summary, and resume point
-- [x] Projects and tasks with create, filtering, and completion flows
-- [x] Calendar and rule-based weekly planner with explicit approval before adding blocks
-- [x] Ideas Inbox, quick capture, emergency capture, and idea draw
-- [x] Development notes, resume points, and focus timer
-- [x] Releases, team overview, notifications, and Gateway administration/status tabs
-- [x] Demo service layer isolated from page rendering; browser storage is only a preview persistence adapter
-- [ ] Complete Portuguese/English localization
-- [ ] Browser visual QA (Chromium is unavailable in the current runtime)
+- [x] Java 21 + Spring Boot, PostgreSQL, esquema Flyway e configuração Docker Compose.
+- [x] Registo/login, JWT, BCrypt e identidade atual.
+- [x] Dados de projetos, tarefas, ideias, notas, eventos, releases e notificações persistidos por API.
+- [x] Isolamento por workspace e papéis Owner/Editor/Viewer verificados no servidor.
+- [x] Convites de uso único, expirados após sete dias, vinculados ao email e com partilha manual do link.
+- [x] Gateway com manutenção normal/só leitura/total, atualizações, estado de serviços e auditoria administrativa.
+- [x] Limites de pedidos por IP e CI Java 21 com testes de integração.
+- [ ] Confirmar build/testes no GitHub Actions; execução local indisponível (sem Maven/JDK 21).
+- [ ] QA visual/fluxos autenticados em browser.
 
-## Later phases — not implemented
+## Fases futuras
 
-- Java 21 modular backend and PostgreSQL schema/migrations
-- Authentication, workspace isolation, and RBAC enforcement
-- Real API persistence and production error/loading states
-- Gateway maintenance, release, audit, rate-limit, and service-monitoring operations
-- Ubuntu 24.04 installer, first-run setup, backup, repair, update, and rollback flows
-- GitHub webhooks and repository/commit/PR mapping
-- Optional AI planner
-- Nord SaaS adapter after reviewing its real API contracts
-- Production security review, integration tests, install/upgrade tests, and usage documentation
+- [ ] Entrega de convites por email, verificação de email, recuperação de password e renovação de sessão.
+- [ ] Limitador distribuído, métricas operacionais aprofundadas e revisão de segurança de produção.
+- [ ] Instalador Ubuntu 24.04, configuração inicial, backup/restauro, atualização e rollback.
+- [ ] Webhooks e mapeamento de repositórios, commits e PRs GitHub.
+- [ ] Planeador IA opcional e integração Nord SaaS após revisão do contrato de API.
+- [ ] Localização inglesa e documentação de operação/instalação.
 
-## Verification
+## Verificação disponível
 
-- `node --check src/app.js` — passed.
-- Frontend asset-link/structure check — passed.
-- Browser interaction test — not run: Playwright is installed but its Chromium executable is not present in the runtime.
+- `node --check src/app.js` — passou.
+- `node --check src/api.js` — passou.
+- Testes de integração Java adicionados para criação/persistência, isolamento entre workspaces e validação de referências de tarefas.
+- `mvn -f backend/pom.xml verify` — não executado localmente: Maven e JDK 21 não estão instalados. O workflow GitHub Actions executa este comando com Temurin 21.
+- Teste visual em browser — não executado: falta o binário Chromium no ambiente.
