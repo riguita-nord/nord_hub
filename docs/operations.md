@@ -34,10 +34,14 @@ Para webhooks, configura um segredo de pelo menos 32 bytes no `.env`, cria o web
 
 Define a chave e um endpoint compatível com Chat Completions no `.env`. O endpoint envia apenas a lista de tarefas abertas, projeto associado, prioridade, prazo e estimativa. A IA pode devolver conteúdo incorreto; revê o plano e aprova manualmente antes de criar blocos.
 
+## Nord SaaS Lite / Forge
+
+O contrato foi confirmado em `riguita-nord/nord-saas-lite`: `GET /health/ready`, `GET /api/v1/status`, `GET /api/v1/forge/projects` e `GET /api/v1/forge/releases`. Define `NORD_HUB_NORD_SAAS_URL` com uma origem HTTPS e `NORD_HUB_NORD_SAAS_SESSION_TOKEN` com uma sessão ativa pertencente a um utilizador com perfil Store ativo e acesso Forge. O Nord Hub envia a sessão apenas como `X-Nord-Session` do servidor remoto; apenas administradores globais podem consultar a sincronização. O painel lê a versão e disponibilidade dos serviços, estados de projetos Forge e releases, sem escrever nem copiar alterações para qualquer sistema. Uma sessão expirada deve ser substituída no `.env` e a API recriada.
+
 ## Limites operacionais
 
 - O instalador não configura DNS, TLS, firewall cloud nem SMTP.
 - Backups locais não protegem contra perda do servidor; replica-os para armazenamento externo seguro.
 - Não existe entrega de convites por email, refresh token, recuperação de password ou login OAuth.
 - O limitador de pedidos vive em memória e exige um reverse proxy/rate limiter adicional para várias instâncias.
-- A integração Nord SaaS está bloqueada até se confirmar a API real.
+- A integração Nord SaaS Lite é só de leitura e usa uma sessão de utilizador que expira; não há credencial de serviço/refresh token documentado para sincronização duradoura.

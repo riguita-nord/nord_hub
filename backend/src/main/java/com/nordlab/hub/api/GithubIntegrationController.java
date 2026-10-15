@@ -47,7 +47,9 @@ public class GithubIntegrationController {
             @Value("${nordhub.github.token:}") String token,
             @Value("${nordhub.github.api-url:https://api.github.com}") String apiUrl,
             @Value("${nordhub.github.webhook-secret:}") String webhookSecret,
-            @Value("${nordhub.ai.api-key:}") String aiKey) {
+            @Value("${nordhub.ai.api-key:}") String aiKey,
+            @Value("${nordhub.nord-saas.base-url:}") String nordSaasUrl,
+            @Value("${nordhub.nord-saas.session-token:}") String nordSaasToken) {
         this.records=records;this.access=access;this.current=current;this.jdbc=jdbc;this.mapper=mapper;
         this.token=token;this.webhookSecret=webhookSecret.getBytes(StandardCharsets.UTF_8);this.aiConfigured=!aiKey.isBlank();
         RestClient.Builder configured=builder.baseUrl(apiUrl);
@@ -57,7 +59,7 @@ public class GithubIntegrationController {
     }
 
     @GetMapping("/api/v1/integrations/status")
-    public IntegrationStatus status(){return new IntegrationStatus(!token.isBlank(),webhookSecret.length>=32,aiConfigured,"NOT_CONFIGURED");}
+    public IntegrationStatus status(){boolean saas=!nordSaasUrl.isBlank()&&!nordSaasToken.isBlank();return new IntegrationStatus(!token.isBlank(),webhookSecret.length>=32,aiConfigured,saas,saas?"CONFIGURED":"NOT_CONFIGURED");}
 
 
     @GetMapping("/api/v1/workspaces/{workspaceId}/github/repositories")
@@ -111,7 +113,7 @@ public class GithubIntegrationController {
     private WorkspaceData find(UUID workspaceId,UUID id){return records.findByIdAndWorkspaceIdAndRecordType(id,workspaceId,RECORD_TYPE).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"Linked repository not found"));}
     private LinkedRepository view(WorkspaceData r){Map<String,Object> p=r.getPayload();return new LinkedRepository(r.getId(),String.valueOf(p.get("fullName")),Boolean.TRUE.equals(p.get("private")),String.valueOf(p.get("url")),String.valueOf(p.get("defaultBranch")),String.valueOf(p.getOrDefault("projectId","")));}
     private void requireToken(){if(token.isBlank())throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,"Configure NORD_HUB_GITHUB_TOKEN on the server first");}
-    public record IntegrationStatus(boolean githubConfigured,boolean githubWebhooksConfigured,boolean aiConfigured,String nordSaasStatus){}
+    public record IntegrationStatus(boolean githubConfigured,boolean githubWebhooksConfigured,boolean aiConfigured,boolean nordSaasConfigured,String nordSaasStatus){}
     public record RemoteRepository(String fullName,boolean privateRepository,String url,String defaultBranch){}
     public record LinkedRepository(UUID id,String fullName,boolean privateRepository,String url,String defaultBranch,String projectId){}
     public record ActivityItem(String id,String title,String url,String actor,List<String> taskReferences,String type){}

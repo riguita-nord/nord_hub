@@ -29,7 +29,7 @@
 - [x] GitHub: associação verificada de repositórios, atividade de commits/PRs e webhooks com HMAC e deduplicação.
 - [x] Referências explícitas de tarefas nos commits/PRs; eventos criam notificações e nunca concluem tarefas.
 - [x] Planeador IA opcional com proposta revista antes de criar eventos.
-- [x] Adaptador Nord SaaS deixado como não configurado, sem inventar contrato ou endpoints.
+- [x] Adaptador Nord SaaS Lite/Forge de leitura com os endpoints verificados de health, status, projetos e releases; acesso limitado ao administrador global do Nord Hub.
 
 ## Fase 4 — Preparação para produção
 
@@ -40,6 +40,7 @@
 - [ ] Exercitar instalação nova, atualização e restauro numa VM Ubuntu 24.04 com Docker/PostgreSQL.
 - [ ] QA visual/interação em browser e completar tradução inglesa.
 - [ ] Revisão de segurança operacional antes de exposição pública (TLS, segredo/rotação de tokens, limites distribuídos e métricas).
+- [ ] A sincronização Nord SaaS usa sessão Store ativa, que o operador deve configurar e renovar; não há API credential/service account para integração duradoura.
 
 ## Verificação disponível
 

@@ -17,6 +17,7 @@ class NordHubApi {
   async acceptInvite(token){const result=await this.request('/invitations/accept',{method:'POST',body:{token}});this.workspaceId=result.id;sessionStorage.setItem('nordHub.workspaceId',result.id);return result}
   async gateway(path,options){return this.request(`/gateway/${path}`,options)}
   async integrationStatus(){return this.request('/integrations/status')}
+  async nordSaasSnapshot(){return this.request('/integrations/nord-saas/snapshot')}
   async githubCatalog(){return this.request('/integrations/github/catalog')}
   async githubRepositories(){return this.request(`/workspaces/${this.workspaceId}/github/repositories`)}
   async linkGithubRepository(fullName,projectId){return this.request(`/workspaces/${this.workspaceId}/github/repositories`,{method:'POST',body:{fullName,projectId:projectId||null}})}

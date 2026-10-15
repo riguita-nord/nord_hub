@@ -33,6 +33,8 @@ services:
       NORD_HUB_AI_API_KEY: ${NORD_HUB_AI_API_KEY:-}
       NORD_HUB_AI_BASE_URL: ${NORD_HUB_AI_BASE_URL:-https://api.openai.com/v1}
       NORD_HUB_AI_MODEL: ${NORD_HUB_AI_MODEL:-gpt-4o-mini}
+      NORD_HUB_NORD_SAAS_URL: ${NORD_HUB_NORD_SAAS_URL:-}
+      NORD_HUB_NORD_SAAS_SESSION_TOKEN: ${NORD_HUB_NORD_SAAS_SESSION_TOKEN:-}
       NORD_HUB_CORS_ORIGINS: ${NORD_HUB_CORS_ORIGINS:-http://localhost:8080}
     depends_on:
       db:
