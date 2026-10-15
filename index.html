@@ -33,7 +33,7 @@
         <a href="#notifications" data-page="notifications" class="nav-link"><i class="fa-regular fa-bell"></i><span>Notificações</span><em class="nav-dot"></em></a>
         <a href="#gateway" data-page="gateway" class="nav-link"><i class="fa-solid fa-server"></i><span>Gateway e sistema</span></a>
       </nav>
-      <div class="sidebar-bottom"><div class="sidebar-status"><span class="status-light"></span><span>Todos os sistemas operacionais</span></div><button class="profile-button" type="button"><span class="profile-avatar">R</span><span><b>Ricardo</b><small>Administrador</small></span><i class="fa-solid fa-ellipsis"></i></button></div>
+      <div class="sidebar-bottom"><div class="sidebar-status"><span class="status-light"></span><span>Todos os sistemas operacionais</span></div><button class="profile-button" type="button" data-action="logout" title="Terminar sessão"><span class="profile-avatar">R</span><span><b>Ricardo</b><small>Administrador</small></span><i class="fa-solid fa-arrow-right-from-bracket"></i></button></div>
     </aside>
     <main class="main-area">
       <header class="topbar">
@@ -46,6 +46,7 @@
   </div>
   <div class="modal-root" id="modal-root" aria-live="polite"></div>
   <div class="toast-root" id="toast-root" aria-live="polite" aria-atomic="true"></div>
+  <script src="src/api.js" defer></script>
   <script src="src/app.js" defer></script>
 </body>
 </html>

@@ -1,0 +1,47 @@
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-nord_hub}
+      POSTGRES_USER: ${POSTGRES_USER:-nord_hub}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - nord_hub_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nord_hub} -d ${POSTGRES_DB:-nord_hub}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    environment:
+      NORD_HUB_PORT: 8081
+      NORD_HUB_DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-nord_hub}
+      NORD_HUB_DB_USER: ${POSTGRES_USER:-nord_hub}
+      NORD_HUB_DB_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      NORD_HUB_JWT_SECRET: ${NORD_HUB_JWT_SECRET:?Set NORD_HUB_JWT_SECRET in .env}
+      NORD_HUB_ADMIN_EMAILS: ${NORD_HUB_ADMIN_EMAILS:-}
+      NORD_HUB_CORS_ORIGINS: ${NORD_HUB_CORS_ORIGINS:-http://localhost:8080}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "${NORD_HUB_WEB_PORT:-8080}:80"
+    volumes:
+      - ./index.html:/usr/share/nginx/html/index.html:ro
+      - ./src:/usr/share/nginx/html/src:ro
+      - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - api
+
+volumes:
+  nord_hub_postgres:
