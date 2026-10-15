@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101114">
+  <meta name="description" content="Nord Hub — um espaço de trabalho para terminar projetos com foco.">
+  <title>Nord Hub — Centro de Trabalho</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="src/styles.css">
+</head>
+<body>
+  <div class="app-shell" id="app">
+    <aside class="sidebar" id="sidebar" aria-label="Navegação principal">
+      <a class="brand" href="#today" aria-label="Nord Hub início"><span class="brand-mark">N</span><span class="brand-name">nord<span>hub</span></span></a>
+      <button class="workspace-select" type="button"><span class="workspace-avatar">N</span><span class="workspace-copy"><b>Nord-Lab</b><small>Espaço pessoal</small></span><i class="fa-solid fa-chevron-down"></i></button>
+      <nav class="nav-list">
+        <p class="nav-label">ESPAÇO DE TRABALHO</p>
+        <a href="#today" data-page="today" class="nav-link active"><i class="fa-solid fa-house"></i><span>Centro de Trabalho</span></a>
+        <a href="#projects" data-page="projects" class="nav-link"><i class="fa-solid fa-layer-group"></i><span>Projetos</span><em class="nav-count" id="project-count"></em></a>
+        <a href="#tasks" data-page="tasks" class="nav-link"><i class="fa-solid fa-list-check"></i><span>Tarefas</span></a>
+        <a href="#calendar" data-page="calendar" class="nav-link"><i class="fa-regular fa-calendar"></i><span>Calendário</span></a>
+        <a href="#planner" data-page="planner" class="nav-link"><i class="fa-solid fa-calendar-week"></i><span>Planeador semanal</span></a>
+        <a href="#inbox" data-page="inbox" class="nav-link"><i class="fa-regular fa-lightbulb"></i><span>Inbox de ideias</span><em class="nav-count" id="idea-count"></em></a>
+        <a href="#notes" data-page="notes" class="nav-link"><i class="fa-regular fa-note-sticky"></i><span>Notas e retoma</span></a>
+        <a href="#focus" data-page="focus" class="nav-link"><i class="fa-solid fa-bullseye"></i><span>Modo Foco</span></a>
+        <a href="#releases" data-page="releases" class="nav-link"><i class="fa-solid fa-rocket"></i><span>Releases</span></a>
+        <p class="nav-label nav-label-spaced">GESTÃO</p>
+        <a href="#team" data-page="team" class="nav-link"><i class="fa-solid fa-people-group"></i><span>Equipa</span></a>
+        <a href="#notifications" data-page="notifications" class="nav-link"><i class="fa-regular fa-bell"></i><span>Notificações</span><em class="nav-dot"></em></a>
+        <a href="#gateway" data-page="gateway" class="nav-link"><i class="fa-solid fa-server"></i><span>Gateway e sistema</span></a>
+      </nav>
+      <div class="sidebar-bottom"><div class="sidebar-status"><span class="status-light"></span><span>Todos os sistemas operacionais</span></div><button class="profile-button" type="button"><span class="profile-avatar">R</span><span><b>Ricardo</b><small>Administrador</small></span><i class="fa-solid fa-ellipsis"></i></button></div>
+    </aside>
+    <main class="main-area">
+      <header class="topbar">
+        <button class="icon-button mobile-menu" id="mobile-menu" aria-label="Abrir navegação"><i class="fa-solid fa-bars"></i></button>
+        <div class="breadcrumbs"><span>Nord-Lab</span><i class="fa-solid fa-chevron-right"></i><b id="crumb">Centro de Trabalho</b></div>
+        <div class="top-actions"><label class="search-box"><i class="fa-solid fa-magnifying-glass"></i><input id="global-search" type="search" placeholder="Pesquisar..." aria-label="Pesquisar"><kbd>⌘ K</kbd></label><button class="icon-button" id="theme-toggle" aria-label="Alternar tema"><i class="fa-regular fa-moon"></i></button><button class="icon-button notification-action" data-goto="notifications" aria-label="Notificações"><i class="fa-regular fa-bell"></i><span></span></button><button class="quick-button" id="quick-capture"><i class="fa-solid fa-plus"></i><span>Captura rápida</span><kbd>Q</kbd></button></div>
+      </header>
+      <section class="content" id="page-content" tabindex="-1"></section>
+    </main>
+  </div>
+  <div class="modal-root" id="modal-root" aria-live="polite"></div>
+  <div class="toast-root" id="toast-root" aria-live="polite" aria-atomic="true"></div>
+  <script src="src/app.js" defer></script>
+</body>
+</html>
