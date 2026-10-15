@@ -18,7 +18,7 @@
 - [x] Convites de uso único, expirados após sete dias, vinculados ao email e com partilha manual do link.
 - [x] Gateway com manutenção normal/só leitura/total, atualizações, estado de serviços e auditoria administrativa.
 - [x] Limites de pedidos por IP e CI Java 21 com testes de integração.
-- [ ] Confirmar build/testes no GitHub Actions; execução local indisponível (sem Maven/JDK 21).
+- [x] Build/testes no GitHub Actions passaram; execução local indisponível (sem Maven/JDK 21).
 - [ ] QA visual/fluxos autenticados em browser.
 
 ## Fase 3 — Instalador e integrações
@@ -36,7 +36,7 @@
 - [x] Testes de integração para APIs, isolamento de workspaces, setup inicial e validação de referências.
 - [x] Smoke tests do instalador, sintaxe dos scripts e checks JavaScript integrados no CI.
 - [x] Documentação de instalação, variáveis, integrações, operação e recuperação.
-- [ ] Executar build e testes Java 21 no GitHub Actions.
+- [x] Build e testes Java 21 no GitHub Actions — passou no commit `b0b523971eb28b02305f762b21dc5f279c8b9f72`.
 - [ ] Exercitar instalação nova, atualização e restauro numa VM Ubuntu 24.04 com Docker/PostgreSQL.
 - [ ] QA visual/interação em browser e completar tradução inglesa.
 - [ ] Revisão de segurança operacional antes de exposição pública (TLS, segredo/rotação de tokens, limites distribuídos e métricas).
@@ -47,5 +47,5 @@
 - `node --check src/app.js` — passou.
 - `node --check src/api.js` — passou.
 - Testes de integração Java adicionados para criação/persistência, isolamento entre workspaces e validação de referências de tarefas.
-- `mvn -f backend/pom.xml verify` — não executado localmente: Maven e JDK 21 não estão instalados. O workflow GitHub Actions executa este comando com Temurin 21.
+- `mvn -f backend/pom.xml verify` — passou no GitHub Actions com Temurin 21; Maven e JDK 21 não estão instalados neste ambiente local.
 - Teste visual em browser — não executado: falta o binário Chromium no ambiente.
