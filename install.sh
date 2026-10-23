@@ -51,16 +51,22 @@ NORD_HUB_JWT_SECRET=$JWT_SECRET
 NORD_HUB_SETUP_TOKEN=$SETUP_TOKEN
 NORD_HUB_ADMIN_EMAILS=$ADMIN_EMAIL
 NORD_HUB_WEB_PORT=8080
+NORD_HUB_BIND_ADDRESS=127.0.0.1
 NORD_HUB_CORS_ORIGINS=http://localhost:8080
 ENV
   chmod 600 "$ENV_FILE"
 else
   echo '.env já existe; configuração e segredos preservados.'
   SETUP_TOKEN="$(sed -n 's/^NORD_HUB_SETUP_TOKEN=//p' "$ENV_FILE" | tail -n1)"
-  if [[ -z "$SETUP_TOKEN" ]]; then SETUP_TOKEN="$(openssl rand -hex 32)"; printf '\nNORD_HUB_SETUP_TOKEN=%s\n' "$SETUP_TOKEN" >> "$ENV_FILE"; chmod 600 "$ENV_FILE"; fi
+  # Never reactivate the one-time bootstrap credential on an existing installation.
+  # An empty/missing token after first setup is intentional.
+  if [[ -z "$SETUP_TOKEN" ]]; then
+    echo 'Token de configuração inicial ausente (normal após o primeiro administrador).'
+  fi
 fi
 
 cd "$ROOT_DIR"
+run docker compose config -q
 run docker compose up -d --build --remove-orphans
 PORT="$(sed -n 's/^NORD_HUB_WEB_PORT=//p' "$ENV_FILE" | tail -n1)"; PORT="${PORT:-8080}"
 for attempt in $(seq 1 60); do
