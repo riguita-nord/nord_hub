@@ -36,7 +36,50 @@ const seed={
 let apiEnabled=false,apiUser=null,apiWorkspace=null,apiWorkspaces=[],setupAvailable=false;
 const apiCollections={projects:'projects',tasks:'tasks',ideas:'ideas',notes:'notes',events:'events',releases:'releases',notifications:'notifications'};
 const previewPreferences=()=>{try{return JSON.parse(localStorage.getItem('nordHub.preferences')||'{}')}catch{return {}}};
-const HubStore={key:'nordHub.frontend.v1',load(){try{const saved=JSON.parse(localStorage.getItem(this.key)||'null');return saved?{...structuredClone(seed),...saved}:structuredClone(seed)}catch{return structuredClone(seed)}},save(){if(apiEnabled){localStorage.setItem('nordHub.preferences',JSON.stringify(state.preferences));return}localStorage.setItem(this.key,JSON.stringify(state))},add(collection,item){const record={id:crypto.randomUUID?.()||String(Date.now()),...item};state[collection].unshift(record);if(apiEnabled){window.nordHubApi.create(apiCollections[collection],item).then(remote=>{state[collection]=state[collection].map(x=>x.id===record.id?{...remote.payload,id:remote.id}:x);render()}).catch(err=>toast(`Não foi possível guardar: ${err.message}`,'fa-triangle-exclamation'))}else this.save();return record},update(collection,id,patch){state[collection]=state[collection].map(x=>x.id===id?{...x,...patch}:x);if(apiEnabled)window.nordHubApi.patch(apiCollections[collection],id,patch).catch(err=>toast(`Não foi possível atualizar: ${err.message}`,'fa-triangle-exclamation'));else this.save()},remove(collection,id){state[collection]=state[collection].filter(x=>x.id!==id);if(apiEnabled)window.nordHubApi.remove(apiCollections[collection],id).catch(err=>toast(`Não foi possível remover: ${err.message}`,'fa-triangle-exclamation'));else this.save()}};
+// Keep the UI responsive while reconciling failed writes with the server's source of truth.
+const HubStore={
+  key:'nordHub.frontend.v1',
+  load(){try{const saved=JSON.parse(localStorage.getItem(this.key)||'null');return saved?{...structuredClone(seed),...saved}:structuredClone(seed)}catch{return structuredClone(seed)}},
+  save(){if(apiEnabled){localStorage.setItem('nordHub.preferences',JSON.stringify(state.preferences));return}localStorage.setItem(this.key,JSON.stringify(state))},
+  async reconcile(collection,fallback){
+    try{
+      const records=await window.nordHubApi.list(apiCollections[collection]);
+      state[collection]=records.map(record=>({...record.payload,id:record.id}));
+    }catch{
+      // If the server is unreachable, restore the pre-write state rather than
+      // displaying an unconfirmed change as successfully persisted.
+      state[collection]=fallback;
+    }
+    render();
+  },
+  add(collection,item){
+    const record={id:crypto.randomUUID?.()||String(Date.now()),...item};
+    const previous=structuredClone(state[collection]);
+    state[collection].unshift(record);
+    if(apiEnabled){
+      window.nordHubApi.create(apiCollections[collection],item)
+        .then(remote=>{state[collection]=state[collection].map(x=>x.id===record.id?{...remote.payload,id:remote.id}:x);render()})
+        .catch(async err=>{await this.reconcile(collection,previous);toast(`Não foi possível guardar: ${err.message}`,'fa-triangle-exclamation')});
+    }else this.save();
+    return record;
+  },
+  update(collection,id,patch){
+    const previous=structuredClone(state[collection]);
+    state[collection]=state[collection].map(x=>x.id===id?{...x,...patch}:x);
+    if(apiEnabled){
+      window.nordHubApi.patch(apiCollections[collection],id,patch)
+        .catch(async err=>{await this.reconcile(collection,previous);toast(`Não foi possível atualizar: ${err.message}`,'fa-triangle-exclamation')});
+    }else this.save();
+  },
+  remove(collection,id){
+    const previous=structuredClone(state[collection]);
+    state[collection]=state[collection].filter(x=>x.id!==id);
+    if(apiEnabled){
+      window.nordHubApi.remove(apiCollections[collection],id)
+        .catch(async err=>{await this.reconcile(collection,previous);toast(`Não foi possível remover: ${err.message}`,'fa-triangle-exclamation')});
+    }else this.save();
+  }
+};
 let state=HubStore.load();state.preferences={...seed.preferences,...previewPreferences(),...state.preferences};
 let currentPage='today',filterTask='Todas',calendarOffset=0,calendarView='month',focusSeconds=25*60,focusInterval=null,adminTab='updates',captureType='Tarefa',isEmergency=false;
 let gatewayData={status:null,maintenance:null,services:[],updates:[],history:[],loading:false};
