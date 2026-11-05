@@ -200,7 +200,7 @@ async function drawGlobalTasks(){
   }
 }
 async function drawTeam(){
-  const main=document.getElementById("main");main.append(heading("Equipa",button("+ Convidar utilizador",()=>dialog("Convidar para o workspace",[{key:"email",label:"Email do utilizador"}],v=>api("/workspaces/"+state.workspace+"/members","POST",v))));
+  const main=document.getElementById("main");main.append(heading("Equipa",button("+ Convidar utilizador",()=>dialog("Convidar para o workspace",[{key:"email",label:"Email do utilizador"}],v=>api("/workspaces/"+state.workspace+"/members","POST",v)))));
   try{
     const r=await api("/workspaces/"+state.workspace+"/members");
     for(const m of r.members){const line=$("div","line");line.append($("span","",m.name),$("span","tag",m.role));main.append(line);}
