@@ -154,7 +154,7 @@ public final class CoreServer {
             if(s.length==5){
                 String section=s[4];
                 if(section.equals("tasks")){
-                    if(method.equals("GET")){send(e,200,Map.of("tasks",query(c,"SELECT id,title,status,priority,due_date AS dueDate,assignee_id AS assigneeId FROM tasks WHERE project_id=? ORDER BY id DESC",project)));return;}
+                    if(method.equals("GET")){send(e,200,Map.of("tasks",query(c,"SELECT id,title,status,priority,due_date AS dueDate,assignee_id AS assigneeId,created_at AS createdAt FROM tasks WHERE project_id=? ORDER BY id DESC",project)));return;}
                     if(method.equals("POST")){
                         JsonNode j=body(e);long id=insert(c,"INSERT INTO tasks(project_id,title,priority,due_date) VALUES (?,?,?,?)",project,required(j,"title",240),choice(j,"priority",Set.of("LOW","MEDIUM","HIGH"),"MEDIUM"),nullable(j,"dueDate",10));
                         send(e,201,Map.of("id",id));return;
