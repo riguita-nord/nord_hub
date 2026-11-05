@@ -20,7 +20,7 @@ if [[ ! -e "$CONFIG/workspace.env" ]]; then
  SECRET="$(openssl rand -hex 48)"
  cat > "$CONFIG/workspace.env" <<EOF
 NORD_DB=$DATA/workspace.db
-NORD_HOST=127.0.0.1
+NORD_HOST=0.0.0.0
 NORD_PORT=8091
 NORD_ADMIN_PORT=8092
 NORD_ADMIN_SECRET=$SECRET
@@ -29,6 +29,14 @@ EOF
  chown root:nord-workspace "$CONFIG/workspace.env"
  chmod 0640 "$CONFIG/workspace.env"
 fi
+# Existing installations are upgraded to LAN binding without replacing their secrets.
+if grep -q '^NORD_HOST=' "$CONFIG/workspace.env"; then
+ sed -i 's/^NORD_HOST=.*/NORD_HOST=0.0.0.0/' "$CONFIG/workspace.env"
+else
+ echo 'NORD_HOST=0.0.0.0' >> "$CONFIG/workspace.env"
+fi
+# LAN test mode: no HTTPS origin is required. Remove an old setting if it exists.
+sed -i '/^NORD_PUBLIC_ORIGIN=/d' "$CONFIG/workspace.env"
 cat >/etc/systemd/system/nord-workspace-core.service <<'EOF'
 [Unit]
 Description=Nord Workspace Core
@@ -76,14 +84,18 @@ UMask=0077
 WantedBy=multi-user.target
 EOF
 systemctl daemon-reload
-systemctl enable --now nord-workspace-core.service
+systemctl enable nord-workspace-core.service
+systemctl restart nord-workspace-core.service
 for i in $(seq 1 15); do
  if curl --silent --fail http://127.0.0.1:8091/api/health >/dev/null; then break; fi
  sleep 1
 done
-systemctl enable --now nord-workspace-admin.service
+systemctl enable nord-workspace-admin.service
+systemctl restart nord-workspace-admin.service
 curl --fail --silent http://127.0.0.1:8091/api/health || { echo "Core healthcheck failed"; exit 1; }
 echo
-echo "Nord Workspace installed locally on http://127.0.0.1:8091"
-echo "Configure HTTPS reverse proxy and NORD_PUBLIC_ORIGIN before public access."
+echo "Nord Workspace HTTP test mode: listening on port 8091 across network interfaces."
+echo "LAN IP candidates: $(hostname -I 2>/dev/null || true)"
+echo "From another device on the same LAN: http://SERVER_LAN_IP:8091"
+echo "Only allow TCP/8091 from your private LAN in your firewall. Do NOT expose via router port-forwarding."
 echo "First registration receives PLATFORM_OWNER."
