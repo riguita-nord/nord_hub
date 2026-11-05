@@ -23,6 +23,7 @@ NORD_DB=$DATA/workspace.db
 NORD_HOST=0.0.0.0
 NORD_PORT=8091
 NORD_ADMIN_PORT=8092
+NORD_ADMIN_HOST=0.0.0.0
 NORD_ADMIN_SECRET=$SECRET
 # NORD_PUBLIC_ORIGIN=https://workspace.example.com
 EOF
@@ -34,6 +35,12 @@ if grep -q '^NORD_HOST=' "$CONFIG/workspace.env"; then
  sed -i 's/^NORD_HOST=.*/NORD_HOST=0.0.0.0/' "$CONFIG/workspace.env"
 else
  echo 'NORD_HOST=0.0.0.0' >> "$CONFIG/workspace.env"
+fi
+# Expose only authenticated browser Admin routes on the LAN; internal APIs remain loopback-only.
+if grep -q '^NORD_ADMIN_HOST=' "$CONFIG/workspace.env"; then
+ sed -i 's/^NORD_ADMIN_HOST=.*/NORD_ADMIN_HOST=0.0.0.0/' "$CONFIG/workspace.env"
+else
+ echo 'NORD_ADMIN_HOST=0.0.0.0' >> "$CONFIG/workspace.env"
 fi
 # LAN test mode: no HTTPS origin is required. Remove an old setting if it exists.
 sed -i '/^NORD_PUBLIC_ORIGIN=/d' "$CONFIG/workspace.env"
@@ -94,8 +101,9 @@ systemctl enable nord-workspace-admin.service
 systemctl restart nord-workspace-admin.service
 curl --fail --silent http://127.0.0.1:8091/api/health || { echo "Core healthcheck failed"; exit 1; }
 echo
-echo "Nord Workspace HTTP test mode: listening on port 8091 across network interfaces."
+echo "Nord Workspace HTTP LAN test mode: Core 8091 and Admin 8092."
 echo "LAN IP candidates: $(hostname -I 2>/dev/null || true)"
-echo "From another device on the same LAN: http://SERVER_LAN_IP:8091"
-echo "Only allow TCP/8091 from your private LAN in your firewall. Do NOT expose via router port-forwarding."
+echo "Core:  http://SERVER_LAN_IP:8091"
+echo "Admin: http://SERVER_LAN_IP:8092 (Platform Owner login required)"
+echo "Allow TCP/8091 and TCP/8092 only from your private LAN in your firewall. Never port-forward these ports to the Internet."
 echo "First registration receives PLATFORM_OWNER."
