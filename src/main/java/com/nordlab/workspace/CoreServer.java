@@ -137,7 +137,7 @@ public final class CoreServer {
         if(path.equals("/api/projects")){
             long wid=number(queryParam(e,"workspaceId"));
             workspaceAccess(c,user,wid);
-            if(method.equals("GET")){send(e,200,Map.of("projects",query(c,"SELECT id,name,description,git_url AS gitUrl,created_at AS createdAt FROM projects WHERE workspace_id=? ORDER BY id DESC",wid)));return;}
+            if(method.equals("GET")){send(e,200,Map.of("projects",query(c,"SELECT p.id,p.name,p.description,p.git_url AS gitUrl,p.created_at AS createdAt FROM projects p JOIN project_members pm ON pm.project_id=p.id WHERE p.workspace_id=? AND pm.user_id=? ORDER BY p.id DESC",wid,user.id)));return;}
             if(method.equals("POST")){
                 JsonNode j=body(e);
                 long id=insert(c,"INSERT INTO projects(workspace_id,name,description,created_by) VALUES (?,?,?,?)",wid,required(j,"name",100),optional(j,"description",1000),user.id);
