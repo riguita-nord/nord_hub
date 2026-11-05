@@ -13,7 +13,18 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
+      - name: Validate browser JavaScript syntax
+        run: |
+          node --check src/main/resources/web/app.js
+          node --check src/main/resources/admin/admin.js
       - name: Build and package
         run: mvn -B verify
-      - name: Confirm shaded JAR
-        run: test -s target/nord-workspace-0.1.0.jar
+      - name: Confirm shaded JAR and frontend assets
+        run: |
+          test -s target/nord-workspace-0.1.0.jar
+          jar tf target/nord-workspace-0.1.0.jar | grep -Fx web/index.html
+          jar tf target/nord-workspace-0.1.0.jar | grep -Fx web/app.js
+          jar tf target/nord-workspace-0.1.0.jar | grep -Fx web/style.css
+          jar tf target/nord-workspace-0.1.0.jar | grep -Fx admin/index.html
+          jar tf target/nord-workspace-0.1.0.jar | grep -Fx admin/admin.js
+
