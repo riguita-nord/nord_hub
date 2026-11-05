@@ -10,6 +10,45 @@ async function api(path,method="GET",data){
   if(!r.ok)throw new Error(result.error||"request_failed");
   return result;
 }
+
+const GLYPHS={
+grid:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+folder:'<path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10H3z"/>',
+tasks:'<rect x="4" y="4" width="16" height="16" rx="2"/><path d="m8 12 2.5 2.5L16 9"/>',
+clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+users:'<circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2M16 5a3 3 0 0 1 0 6M18 14a5 5 0 0 1 3 5"/>',
+settings:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3M5 5l2 2m10 10 2 2M19 5l-2 2M7 17l-2 2"/>',
+plus:'<path d="M12 4v16M4 12h16"/>',
+check:'<circle cx="12" cy="12" r="9"/><path d="m7 12 3 3 7-7"/>',
+activity:'<path d="M2 12h4l3-7 5 14 3-7h5"/>',
+arrow:'<path d="M5 12h14m-6-6 6 6-6 6"/>',
+search:'<circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/>',
+spark:'<path d="m12 2 2.5 7.5L22 12l-7.5 2.5L12 22l-2.5-7.5L2 12l7.5-2.5z"/>'
+};
+function glyph(name,cls="ui-icon"){const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");svg.setAttribute("viewBox","0 0 24 24");svg.setAttribute("class",cls);svg.setAttribute("fill","none");svg.setAttribute("stroke","currentColor");svg.setAttribute("stroke-width","1.8");svg.setAttribute("stroke-linecap","round");svg.setAttribute("stroke-linejoin","round");svg.innerHTML=GLYPHS[name]||GLYPHS.grid;return svg;}
+function withIcon(label,iconName,handler,css="btn"){const b=button("",handler,css);b.append(glyph(iconName),$("span","",label));return b;}
+function projectDialog(){dialog("Novo projeto",[{key:"name",label:"Nome do projeto"},{key:"description",label:"Descrição (opcional)",optional:true}],v=>api("/projects?workspaceId="+state.workspace,"POST",v));}
+function taskDialog(projectId){dialog("Nova tarefa",[{key:"title",label:"O que é preciso fazer?"},{key:"dueDate",label:"Prazo AAAA-MM-DD (opcional)",optional:true}],v=>api("/projects/"+projectId+"/tasks","POST",v));}
+function chooseTaskProject(){
+ if(!state.projects.length){navigate("projects");projectDialog();return;}
+ if(state.projects.length===1){taskDialog(state.projects[0].id);return;}
+ const shade=$("div","dialog"),box=$("div","box");box.append($("h2","","Em que projeto?"),$("p","muted","Escolhe a pasta onde queres adicionar a tarefa."));
+ for(const p of state.projects){box.append(button(p.name,()=>{shade.remove();taskDialog(p.id);},"project-choice"));}
+ box.append(button("Cancelar",()=>shade.remove(),"btn ghost"));shade.append(box);document.body.append(shade);
+}
+function emptyState(iconName,title,description,actionLabel,action){
+ const box=$("div","empty-state");box.append(glyph(iconName,"empty-icon"),$("h3","",title),$("p","muted",description));
+ if(actionLabel)box.append(withIcon(actionLabel,"plus",action));return box;
+}
+function taskRow(t,p){
+ const row=$("div","task-row"),label=$("label","task-main"),check=$("input");check.type="checkbox";check.checked=t.status==="DONE";check.setAttribute("aria-label","Marcar "+t.title+" como concluída");
+ check.onchange=async()=>{check.disabled=true;try{await api("/tasks/"+t.id,"PATCH",{status:check.checked?"DONE":"TODO"});await refresh();}catch(ex){check.checked=!check.checked;check.disabled=false;error(ex);}};
+ label.append(check,$("span","task-name",t.title));row.append(label,$("span","task-project",p.name));
+ if(t.priority==="HIGH")row.append($("span","priority high","Alta"));
+ if(t.dueDate)row.append($("span","task-date",t.dueDate));
+ return row;
+}
+
 const msg=e=>{const t=$("p","error",e.message||String(e));return t};
 function button(label,fn,cls="btn"){const b=$("button",cls,label);b.type="button";b.onclick=()=>Promise.resolve(fn()).catch(error);return b}
 function error(ex){let bar=document.getElementById("errorbar");if(!bar){bar=$("div","error");bar.id="errorbar";document.body.prepend(bar);}bar.textContent="Erro: "+(ex.message||ex);setTimeout(()=>{if(bar.isConnected)bar.remove()},5000);}
@@ -56,72 +95,107 @@ async function loadProjects(){state.projects=state.workspace?(await api("/projec
 async function refresh(){await loadWorkspaces();render();}
 function navigate(page){state.page=page;state.project=null;render();}
 function render(){
-  clear();root.replaceChildren();
-  const app=$("div","app"),brand=$("div","brand");brand.append($("em","","N"),$("span","","Nord Workspace"));
-  const top=$("div","top"),search=input("⌕  Pesquisar projetos…"),topActions=$("div","row");
-  search.className="search";search.oninput=()=>{if(state.page==="projects")drawProjects(search.value);};
-  topActions.append($("span","muted small",state.me.name),button("Sair",async()=>{await api("/auth/logout","POST",{});state.me=null;auth();},"btn ghost"));
-  top.append(search,topActions);
-  const rail=$("div","rail");
-  for(const w of state.workspaces){
-    const b=button((w.icon||w.name.charAt(0)).toUpperCase(),async()=>{state.workspace=w.id;state.project=null;state.page="dashboard";await refresh();},""+(state.workspace===w.id?"active":""));
-    b.title=w.name;rail.append(b);
-  }
-  rail.append(button("+",()=>dialog("Novo workspace",[{key:"name",label:"Nome do workspace"}],async v=>{const result=await api("/workspaces","POST",v);state.workspace=result.id;state.page="dashboard";}),"create"));
-  const nav=$("nav","nav");nav.append($("h3","","Navegação"));
-  for(const [label,page] of [["⌂  Dashboard","dashboard"],["▱  Projetos","projects"],["☑  Tarefas","tasks"],["⌕  Recentes","recent"],["♙  Equipa","team"]]){
-    nav.append(button(label,()=>navigate(page),state.page===page?"active":""));
-  }
-  if(state.me.role==="PLATFORM_OWNER")nav.append(button("⚙  Administração",()=>navigate("admin"),state.page==="admin"?"active":""));
-  nav.append($("div","bottom",state.workspaces.find(w=>w.id===state.workspace)?.name||"Seleciona um espaço"));
-  const main=$("main","main");main.id="main";app.append(brand,top,rail,nav,main);root.append(app);
-  if(state.project){drawProject();return;}
-  if(state.page==="dashboard")drawDashboard();
-  else if(state.page==="projects")drawProjects();
-  else if(state.page==="tasks")drawGlobalTasks();
-  else if(state.page==="team")drawTeam();
-  else if(state.page==="admin")drawAdmin();
-  else if(state.page==="recent")drawProjects();
+ clear();root.replaceChildren();
+ const app=$("div","app"),brand=$("div","brand");brand.append($("em","","N"),$("span","","Nord Workspace"));
+ const top=$("div","top"),searchWrap=$("div","top-search"),search=input("Pesquisar projetos…"),actions=$("div","top-actions");
+ search.className="search";search.setAttribute("aria-label","Pesquisar projetos");
+ searchWrap.append(glyph("search"),search);
+ search.oninput=()=>{if(state.page!=="projects"||state.project){state.page="projects";state.project=null;drawProjects(search.value);}else drawProjects(search.value);};
+ actions.append($("span","user-name",state.me.name),button("Sair",async()=>{await api("/auth/logout","POST",{});state.me=null;auth();},"btn ghost top-logout"));
+ top.append(searchWrap,actions);
+ const rail=$("div","rail");
+ rail.setAttribute("aria-label","Workspaces");
+ for(const w of state.workspaces){
+   const b=button((w.icon||w.name.charAt(0)).toUpperCase(),async()=>{state.workspace=w.id;state.project=null;state.page="dashboard";await refresh();},"workspace-icon"+(state.workspace===w.id?" active":""));
+   b.title=w.name;b.setAttribute("aria-label","Abrir workspace "+w.name);rail.append(b);
+ }
+ const add=button("",()=>dialog("Novo workspace",[{key:"name",label:"Nome do workspace"}],async v=>{const result=await api("/workspaces","POST",v);state.workspace=result.id;state.page="dashboard";}),"create");add.append(glyph("plus"));add.title="Novo workspace";add.setAttribute("aria-label","Novo workspace");rail.append(add);
+ const nav=$("nav","nav"),workspaceName=state.workspaces.find(w=>w.id===state.workspace)?.name||"O meu espaço";
+ nav.append($("div","nav-workspace-name",workspaceName),$("h3","","O teu espaço"));
+ for(const [label,page,iconName] of [["Dashboard","dashboard","grid"],["Projetos","projects","folder"],["Tarefas","tasks","tasks"],["Recentes","recent","clock"],["Equipa","team","users"]]){
+   nav.append(withIcon(label,iconName,()=>navigate(page),"nav-link"+(state.page===page&&!state.project?" active":"")));
+ }
+ if(state.me.role==="PLATFORM_OWNER"){
+   nav.append($("h3","nav-admin-title","Plataforma"),withIcon("Administração","settings",()=>navigate("admin"),"nav-link"+(state.page==="admin"&&!state.project?" active":"")));
+ }
+ const footer=$("div","bottom");footer.append($("div","footer-avatar",state.me.name.slice(0,1).toUpperCase()));
+ const text=$("div","footer-meta");text.append($("strong","",state.me.name),$("small","",workspaceName));footer.append(text);nav.append(footer);
+ const main=$("main","main");main.id="main";app.append(brand,top,rail,nav,main);root.append(app);
+ if(state.project){drawProject();return;}
+ if(state.page==="dashboard")drawDashboard();
+ else if(state.page==="projects"||state.page==="recent")drawProjects();
+ else if(state.page==="tasks")drawGlobalTasks();
+ else if(state.page==="team")drawTeam();
+ else if(state.page==="admin")drawAdmin();
 }
 function heading(title,action){const h=$("div","pagehead");h.append($("h1","",title));if(action)h.append(action);return h}
 function folder(project){
-  const b=button("",async()=>{state.project=project.id;state.tab="tasks";render();},"folder");
-  b.append($("span","ico","📁"),$("span","name",project.name));
-  return b;
+ const b=button("",async()=>{state.project=project.id;state.tab="tasks";render();},"folder");
+ const visual=$("span","folder-visual");visual.append(glyph("folder"));b.append(visual,$("span","name",project.name));
+ if(project.description)b.append($("span","folder-desc",project.description));
+ return b;
 }
 function drawProjects(filter=""){
-  const main=document.getElementById("main");if(!main)return;main.replaceChildren();
-  main.append(heading("Projetos",button("+ Novo projeto",()=>dialog("Novo projeto",[{key:"name",label:"Nome do projeto"},{key:"description",label:"Descrição",optional:true}],v=>api("/projects?workspaceId="+state.workspace,"POST",v)))));
-  main.append($("p","muted","Cada pasta é um projeto. Abre uma pasta para ver tarefas, Git, documentos e equipa."));
-  const grid=$("div","folders");for(const p of state.projects.filter(p=>p.name.toLowerCase().includes(filter.toLowerCase())))grid.append(folder(p));
-  if(!grid.children.length)grid.append($("p","empty","Ainda não existem projetos aqui."));main.append(grid);
+ const main=document.getElementById("main");if(!main)return;main.replaceChildren();
+ const h=$("div","pagehead");const copy=$("div");copy.append($("div","eyebrow","EXPLORADOR DE PROJETOS"),$("h1","","Os teus projetos"),$("p","muted","Cada pasta abre o seu espaço com tarefas, Git, documentos e equipa."));
+ h.append(copy,withIcon("Novo projeto","plus",projectDialog));main.append(h);
+ const projects=state.projects.filter(p=>p.name.toLowerCase().includes(filter.toLowerCase()));
+ if(!projects.length){main.append(emptyState("folder",filter?"Nenhum resultado":"Ainda não tens projetos",filter?"Experimenta outro nome na pesquisa.":"Cria a primeira pasta para começar a organizar o teu trabalho.",filter?null:"Criar projeto",filter?null:projectDialog));return;}
+ const grid=$("div","folders project-grid");for(const p of projects)grid.append(folder(p));main.append(grid);
 }
 async function drawDashboard(){
-  const main=document.getElementById("main");
-  const name=state.workspaces.find(w=>w.id===state.workspace)?.name||"Workspace";
-  const hero=$("div","hero");hero.append($("h1","","Bom dia, "+state.me.name+" 👋"),$("p","muted","O teu espaço: "+name));main.append(hero);
-  const cards=$("div","cards");
-  for(const [v,label] of [[state.projects.length,"Projetos"],["—","Tarefas ativas"],["—","Concluídas"],[state.workspaces.length,"Workspaces"]]){
-    const card=$("div","stat");card.append($("b","",String(v)),$("span","muted",label));cards.append(card);
-  }main.append(cards);
-  const sec=$("section","section"),head=heading("Projetos recentes",button("Ver todos",()=>navigate("projects"),"btn ghost"));sec.append(head);
-  const grid=$("div","folders");for(const p of state.projects.slice(0,10))grid.append(folder(p));sec.append(grid);main.append(sec);
-  const section=$("section","section grid2"),tasks=$("div","panel"),activity=$("div","panel");
-  tasks.append($("h2","","Próximas tarefas"));activity.append($("h2","","Atividade do workspace"));
-  section.append(tasks,activity);main.append(section);
-  let active=0,done=0;
-  for(const p of state.projects.slice(0,30)){
-    try{
-      const t=(await api("/projects/"+p.id+"/tasks")).tasks;
-      active+=t.filter(x=>x.status!=="DONE").length;done+=t.filter(x=>x.status==="DONE").length;
-      for(const item of t.filter(x=>x.status!=="DONE").slice(0,2)){
-        const r=$("div","line");r.append($("span","",item.title),$("span","tag",p.name));tasks.append(r);
-      }
-    }catch(ex){}
-  }
-  cards.children[1].firstChild.textContent=String(active);
-  cards.children[2].firstChild.textContent=String(done);
-  activity.append($("p","muted","Abre um projeto para consultar mensagens e atualizações da tua equipa."));
+ const main=document.getElementById("main");
+ const workspaceId=state.workspace;
+ const name=state.workspaces.find(w=>w.id===workspaceId)?.name||"O meu espaço";
+ const hero=$("section","hero dashboard-hero");
+ const copy=$("div","hero-copy");
+ const hours=new Date().getHours(),greeting=hours<12?"Bom dia":hours<19?"Boa tarde":"Boa noite";
+ copy.append($("div","eyebrow","WORKSPACE / "+name.toUpperCase()),$("h1","",greeting+", "+state.me.name.split(" ")[0]+" 👋"),$("p","muted","Os teus projetos, prioridades e atividade num só lugar."));
+ const quick=$("div","hero-actions");quick.append(withIcon("Novo projeto","plus",projectDialog),withIcon("Nova tarefa","tasks",chooseTaskProject,"btn ghost"));
+ hero.append(copy,quick);main.append(hero);
+ const metrics=$("div","cards dashboard-metrics");
+ const items=[["folder","Projetos",state.projects.length],["tasks","Tarefas ativas","…"],["check","Concluídas","…"],["users","Workspaces",state.workspaces.length]];
+ const valueNodes=[];
+ for(const [iconName,label,value] of items){
+   const card=$("div","stat"),mark=$("div","stat-mark");mark.append(glyph(iconName));
+   const txt=$("div","stat-text"),num=$("b","",String(value));txt.append(num,$("span","muted",label));valueNodes.push(num);
+   card.append(mark,txt);metrics.append(card);
+ }main.append(metrics);
+ const projects=$("section","dashboard-projects"),ph=$("div","section-head");
+ const heading=$("div");heading.append($("div","eyebrow","ACESSO RÁPIDO"),$("h2","","Projetos recentes"));
+ ph.append(heading,button("Ver todos →",()=>navigate("projects"),"text-action"));projects.append(ph);
+ if(!state.projects.length){
+   projects.append(emptyState("folder","O teu primeiro projeto começa aqui","Cada pasta terá as suas tarefas, ligações Git, documentos e, se precisares, um chat de equipa.","Criar primeiro projeto",projectDialog));
+ }else{
+   const grid=$("div","folders dashboard-folder-grid");
+   for(const p of state.projects.slice(0,8))grid.append(folder(p));
+   projects.append(grid);
+ }
+ main.append(projects);
+ const two=$("div","dashboard-bottom"),tasks=$("section","panel dashboard-panel"),activity=$("section","panel dashboard-panel");
+ const taskHead=$("div","panel-heading");taskHead.append($("h2","","As minhas tarefas"),button("Ver todas →",()=>navigate("tasks"),"text-action"));tasks.append(taskHead);
+ const actHead=$("div","panel-heading");actHead.append($("h2","","Atividade recente"),$("span","muted small","Por projeto"));activity.append(actHead);
+ two.append(tasks,activity);main.append(two);
+ const all=[];
+ await Promise.all(state.projects.map(async p=>{
+   try{const result=await api("/projects/"+p.id+"/tasks");for(const t of result.tasks)all.push({task:t,project:p});}
+   catch(ex){error(ex);}
+ }));
+ if(state.workspace!==workspaceId||state.page!=="dashboard"||state.project)return;
+ const active=all.filter(v=>v.task.status!=="DONE");
+ const done=all.length-active.length;
+ valueNodes[1].textContent=String(active.length);valueNodes[2].textContent=String(done);
+ active.sort((a,b)=>(a.task.dueDate||"9999").localeCompare(b.task.dueDate||"9999")||(a.task.priority==="HIGH"?-1:1));
+ if(!active.length)tasks.append(emptyState("check","Tudo em ordem","Não há tarefas pendentes neste workspace.",all.length?null:"Criar tarefa",all.length?null:chooseTaskProject));
+ else for(const {task,project} of active.slice(0,5))tasks.append(taskRow(task,project));
+ const recent=all.filter(v=>v.task.createdAt).sort((a,b)=>String(b.task.createdAt).localeCompare(String(a.task.createdAt))).slice(0,5);
+ if(!recent.length){
+   activity.append(emptyState("activity","Ainda sem atividade","A criação de tarefas aparecerá aqui assim que começares a trabalhar."));
+ }else for(const {task,project} of recent){
+   const line=$("div","activity-row"),mark=$("span","activity-mark");mark.append(glyph(task.status==="DONE"?"check":"tasks"));
+   const detail=$("div","activity-detail");detail.append($("strong","",task.status==="DONE"?"Tarefa concluída":"Tarefa criada"),$("span","",task.title+" · "+project.name));
+   line.append(mark,detail);activity.append(line);
+ }
 }
 async function drawProject(){
   if(state.timer){clearInterval(state.timer);state.timer=null;}
