@@ -9,7 +9,7 @@ Java 21 productivity workspace with two separate JVM processes, Core and interna
 - Project tasks, Git repository links, HTTPS document links, members and team chat.
 - First successful registration becomes PLATFORM_OWNER; subsequent users are USER.
 - Session-cookie login, SQLite, PBKDF2 password hashing.
-- Admin statistics and user listing limited to Platform Owner; Admin port is loopback-only.
+- Admin statistics and user listing limited to Platform Owner; Admin HTTP UI is LAN-accessible with Platform Owner authentication; internal shared-secret endpoints still reject non-loopback access.
 
 ## Install on Ubuntu/Debian
 
@@ -20,12 +20,12 @@ From the repository checkout:
 The installer fetches OpenJDK 21, Maven, OpenSSL and curl via apt, builds the Java jar, provisions a dedicated service account and creates two systemd services.
 
 - Core (LAN test mode): http://SERVER_LAN_IP:8091 (listens on 0.0.0.0)
-- Admin: http://127.0.0.1:8092 (never expose to internet)
+- Admin LAN UI: http://SERVER_LAN_IP:8092 (only authenticated PLATFORM_OWNER users; never expose to internet)
 - DB: /var/lib/nord-workspace/workspace.db
 - Configuration: /etc/nord-workspace/workspace.env
 - JAR: /opt/nord-workspace/nord-workspace.jar
 
-For **LAN testing**, open http://SERVER_LAN_IP:8091 in a browser on a different computer. The VM/server requires **terminal only**; no browser is installed or needed. The install script sets NORD_HOST=0.0.0.0 and clears NORD_PUBLIC_ORIGIN to allow HTTP test mode. Core is available on TCP port 8091; Admin stays on 127.0.0.1:8092. Find LAN IP with `hostname -I` or `ip -4 addr`. If UFW is enabled, permit port 8091 only from the actual trusted LAN subnet (example: `sudo ufw allow from 192.168.1.0/24 to any port 8091 proto tcp`; replace with your subnet). Do not forward 8091 on the router. For production/public Internet access, configure HTTPS and set NORD_PUBLIC_ORIGIN to the HTTPS origin; this HTTP mode is **not suitable for the Internet**.
+For **LAN testing**, open http://SERVER_LAN_IP:8091 in a browser on a different computer. The VM/server requires **terminal only**; no browser is installed or needed. The install script sets NORD_HOST=0.0.0.0 and clears NORD_PUBLIC_ORIGIN to allow HTTP test mode. Core is available on TCP port 8091; Admin UI is available via http://SERVER_LAN_IP:8092, while /internal/ endpoints are restricted to local connections. Find LAN IP with `hostname -I` or `ip -4 addr`. If UFW is enabled, permit ports 8091 and 8092 only from the actual trusted LAN subnet (examples: `sudo ufw allow from 192.168.1.0/24 to any port 8091 proto tcp` and `sudo ufw allow from 192.168.1.0/24 to any port 8092 proto tcp`; replace with your subnet). Do not forward 8091 on the router. For production/public Internet access, configure HTTPS and set NORD_PUBLIC_ORIGIN to the HTTPS origin; this HTTP mode is **not suitable for the Internet**.
 
     sudo systemctl restart nord-workspace-core nord-workspace-admin
     sudo journalctl -u nord-workspace-core -f
@@ -60,3 +60,13 @@ Git and documents are links, not hosted repositories or file uploads. Chat uses 
     curl http://127.0.0.1:8091/api/health
 
 Open `http://LAN_IP:8091` from your own desktop/laptop browser (not from the VM). HTTP sends login credentials and sessions without transport encryption, so only test on a trusted isolated LAN and use a disposable test password.
+
+## Separate Admin browser page (LAN testing)
+
+1. From your desktop browser, register/login as Platform Owner at http://LAN_IP:8091.
+2. In the **same browser**, open http://LAN_IP:8092 for the separate Admin dashboard.
+3. Admin checks the Platform Owner session in the same SQLite database; non-owners cannot access statistics/user lists.
+4. Use the LAN IP consistently (not localhost for one service and IP for the other), because the auth cookie is shared by hostname.
+5. All HTTP traffic is unencrypted; restrict both ports to a trusted network and use a disposable testing password.
+
+The server itself can remain completely headless (terminal only).
