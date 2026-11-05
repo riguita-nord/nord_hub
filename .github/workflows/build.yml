@@ -1,0 +1,19 @@
+name: Build Nord Workspace
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Build and package
+        run: mvn -B verify
+      - name: Confirm shaded JAR
+        run: test -s target/nord-workspace-0.1.0.jar
