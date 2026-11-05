@@ -18,7 +18,7 @@ public final class AdminServer {
         Path db = Path.of(System.getenv().getOrDefault("NORD_DB", "./data/workspace.db")).toAbsolutePath();
         if (!Files.isRegularFile(db)) throw new IllegalStateException("Core database does not exist yet: " + db);
         int port = Integer.parseInt(System.getenv().getOrDefault("NORD_ADMIN_PORT", "8092"));
-        HttpServer http = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), port), 0);
+        HttpServer http = HttpServer.create(new InetSocketAddress(InetAddress.getByName("127.0.0.1"), port), 0);
         http.createContext("/internal/", e -> {
             try {
                 String supplied = e.getRequestHeaders().getFirst("X-Nord-Internal");
