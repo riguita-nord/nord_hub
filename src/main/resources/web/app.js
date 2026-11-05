@@ -124,6 +124,7 @@ async function drawDashboard(){
   activity.append($("p","muted","Abre um projeto para consultar mensagens e atualizações da tua equipa."));
 }
 async function drawProject(){
+  if(state.timer){clearInterval(state.timer);state.timer=null;}
   const main=document.getElementById("main");
   main.replaceChildren($("p","muted","A carregar projeto…"));
   try{
