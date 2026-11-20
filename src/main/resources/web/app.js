@@ -144,58 +144,137 @@ function drawProjects(filter=""){
  const grid=$("div","folders project-grid");for(const p of projects)grid.append(folder(p));main.append(grid);
 }
 async function drawDashboard(){
- const main=document.getElementById("main");
- const workspaceId=state.workspace;
- const name=state.workspaces.find(w=>w.id===workspaceId)?.name||"O meu espaço";
- const hero=$("section","hero dashboard-hero");
- const copy=$("div","hero-copy");
- const hours=new Date().getHours(),greeting=hours<12?"Bom dia":hours<19?"Boa tarde":"Boa noite";
- copy.append($("div","eyebrow","WORKSPACE / "+name.toUpperCase()),$("h1","",greeting+", "+state.me.name.split(" ")[0]+" 👋"),$("p","muted","Os teus projetos, prioridades e atividade num só lugar."));
- const quick=$("div","hero-actions");quick.append(withIcon("Novo projeto","plus",projectDialog),withIcon("Nova tarefa","tasks",chooseTaskProject,"btn ghost"));
- hero.append(copy,quick);main.append(hero);
- const metrics=$("div","cards dashboard-metrics");
- const items=[["folder","Projetos",state.projects.length],["tasks","Tarefas ativas","…"],["check","Concluídas","…"],["users","Workspaces",state.workspaces.length]];
- const valueNodes=[];
- for(const [iconName,label,value] of items){
-   const card=$("div","stat"),mark=$("div","stat-mark");mark.append(glyph(iconName));
-   const txt=$("div","stat-text"),num=$("b","",String(value));txt.append(num,$("span","muted",label));valueNodes.push(num);
-   card.append(mark,txt);metrics.append(card);
- }main.append(metrics);
- const projects=$("section","dashboard-projects"),ph=$("div","section-head");
- const heading=$("div");heading.append($("div","eyebrow","ACESSO RÁPIDO"),$("h2","","Projetos recentes"));
- ph.append(heading,button("Ver todos →",()=>navigate("projects"),"text-action"));projects.append(ph);
- if(!state.projects.length){
-   projects.append(emptyState("folder","O teu primeiro projeto começa aqui","Cada pasta terá as suas tarefas, ligações Git, documentos e, se precisares, um chat de equipa.","Criar primeiro projeto",projectDialog));
- }else{
-   const grid=$("div","folders dashboard-folder-grid");
-   for(const p of state.projects.slice(0,8))grid.append(folder(p));
-   projects.append(grid);
- }
- main.append(projects);
- const two=$("div","dashboard-bottom"),tasks=$("section","panel dashboard-panel"),activity=$("section","panel dashboard-panel");
- const taskHead=$("div","panel-heading");taskHead.append($("h2","","As minhas tarefas"),button("Ver todas →",()=>navigate("tasks"),"text-action"));tasks.append(taskHead);
- const actHead=$("div","panel-heading");actHead.append($("h2","","Atividade recente"),$("span","muted small","Por projeto"));activity.append(actHead);
- two.append(tasks,activity);main.append(two);
- const all=[];
- await Promise.all(state.projects.map(async p=>{
-   try{const result=await api("/projects/"+p.id+"/tasks");for(const t of result.tasks)all.push({task:t,project:p});}
-   catch(ex){error(ex);}
- }));
- if(state.workspace!==workspaceId||state.page!=="dashboard"||state.project)return;
- const active=all.filter(v=>v.task.status!=="DONE");
- const done=all.length-active.length;
- valueNodes[1].textContent=String(active.length);valueNodes[2].textContent=String(done);
- active.sort((a,b)=>(a.task.dueDate||"9999").localeCompare(b.task.dueDate||"9999")||(a.task.priority==="HIGH"?-1:1));
- if(!active.length)tasks.append(emptyState("check","Tudo em ordem","Não há tarefas pendentes neste workspace.",all.length?null:"Criar tarefa",all.length?null:chooseTaskProject));
- else for(const {task,project} of active.slice(0,5))tasks.append(taskRow(task,project));
- const recent=all.filter(v=>v.task.createdAt).sort((a,b)=>String(b.task.createdAt).localeCompare(String(a.task.createdAt))).slice(0,5);
- if(!recent.length){
-   activity.append(emptyState("activity","Ainda sem atividade","A criação de tarefas aparecerá aqui assim que começares a trabalhar."));
- }else for(const {task,project} of recent){
-   const line=$("div","activity-row"),mark=$("span","activity-mark");mark.append(glyph(task.status==="DONE"?"check":"tasks"));
-   const detail=$("div","activity-detail");detail.append($("strong","",task.status==="DONE"?"Tarefa concluída":"Tarefa criada"),$("span","",task.title+" · "+project.name));
-   line.append(mark,detail);activity.append(line);
- }
+  const main=document.getElementById("main");
+  if(!main||!state.workspace)return;
+  const wid=state.workspace;
+  const workspaceName=state.workspaces.find(w=>w.id===wid)?.name||"Workspace";
+  main.replaceChildren();
+  const hero=$("section","home-heading"),heroText=$("div");
+  const hour=new Date().getHours();
+  heroText.append($("div","eyebrow","NORD HUB / "+workspaceName.toUpperCase()),
+    $("h1","",hour<12?"Bom dia":hour<19?"Boa tarde":"Boa noite"),
+    $("p","muted","As tuas prioridades, projetos e infraestrutura num só lugar."));
+  const quick=$("div","hero-actions");
+  quick.append(withIcon("Novo projeto","plus",projectDialog),
+    withIcon("Nova tarefa","tasks",chooseTaskProject,"btn ghost"));
+  hero.append(heroText,quick);main.append(hero);
+  const loading=$("div","panel home-loading","A carregar dados do workspace…");main.append(loading);
+  try{
+    const [data,prefs]=await Promise.all([
+      api("/home?workspaceId="+encodeURIComponent(wid)),
+      api("/home/preferences?workspaceId="+encodeURIComponent(wid))
+    ]);
+    if(state.workspace!==wid||state.page!=="dashboard"||state.project)return;
+    loading.remove();
+    const hidden=new Set((prefs.hiddenWidgets||"").split(",").filter(Boolean));
+    const notice=$("div","home-attention");
+    if(data.attention?.items?.length){
+      notice.append($("strong","","Atenção necessária"));
+      for(const a of data.attention.items)notice.append($("p","",a.title||"Incidente"));
+      main.append(notice);
+    }
+    const metrics=$("div","home-metrics");
+    for(const [icon,title,value] of [
+      ["folder","Projetos ativos",data.summary.activeProjects],
+      ["tasks","Tarefas abertas",data.summary.myOpenTasks],
+      ["activity","Servidores online",data.summary.totalServers==null?"—":data.summary.onlineServers+"/"+data.summary.totalServers],
+      ["check","Alertas",data.summary.openAlerts==null?"—":data.summary.openAlerts]
+    ]){
+      const card=$("div","home-metric"),mark=$("span","home-metric-icon");
+      mark.append(glyph(icon));
+      const text=$("div");text.append($("b","",String(value)),$("span","muted",title));
+      card.append(mark,text);metrics.append(card);
+    }
+    main.append(metrics);
+    const toolbar=$("div","home-toolbar");
+    toolbar.append($("h2","","Overview"));
+    toolbar.append(button("Personalizar",()=>homePreferencesDialog(prefs,async next=>{
+      await api("/home/preferences?workspaceId="+wid,"PATCH",next);
+      drawDashboard();
+    }),"btn ghost"));
+    main.append(toolbar);
+    const grid=$("div","home-widget-grid");main.append(grid);
+    function widget(key,title,viewAll){
+      if(hidden.has(key))return null;
+      const panel=$("section","panel home-widget");
+      const head=$("div","panel-heading");head.append($("h2","",title));
+      if(viewAll)head.append(button("Ver todos →",viewAll,"text-action"));
+      panel.append(head);grid.append(panel);return panel;
+    }
+    const taskPanel=widget("tasks","As minhas prioridades",()=>navigate("tasks"));
+    if(taskPanel){
+      const open=data.tasks.items.filter(t=>t.status!=="DONE").slice(0,5);
+      if(!open.length)taskPanel.append(emptyState("check","Sem tarefas pendentes","Cria uma tarefa para começar.","Nova tarefa",chooseTaskProject));
+      else for(const t of open)taskPanel.append(taskRow(t,{name:t.projectName}));
+    }
+    const infraPanel=widget("infrastructure","Infraestrutura",null);
+    if(infraPanel){
+      if(data.infrastructure.status==="not_connected"){
+        infraPanel.append(emptyState("activity","Nenhuma integração configurada",
+          "Liga um provider para ver os servidores reais. Não apresentamos métricas simuladas."));
+      } else if(data.infrastructure.status!=="ok"){
+        infraPanel.append($("p","muted","Estado indisponível. Os restantes módulos continuam operacionais."));
+      } else if(!data.infrastructure.items.length){
+        infraPanel.append($("p","muted","Sem recursos associados a este workspace."));
+      } else {
+        for(const r of data.infrastructure.items){
+          const line=$("div","home-infra-line");
+          line.append($("span","",r.name),$("span","home-status "+(r.state||"unknown"),r.state||"unknown"));
+          infraPanel.append(line);
+        }
+        if(data.infrastructure.updatedAt)infraPanel.append($("p","muted small","Última atualização: "+new Date(data.infrastructure.updatedAt).toLocaleString("pt-PT")));
+      }
+    }
+    const projectPanel=widget("projects","Projetos ativos",()=>navigate("projects"));
+    if(projectPanel){
+      if(!data.projects.items.length)projectPanel.append(emptyState("folder","Ainda sem projetos","Cria o primeiro projeto neste workspace.","Novo projeto",projectDialog));
+      for(const p of data.projects.items.slice(0,5)){
+        const line=button("",()=>{state.project=p.id;state.tab="tasks";render();},"home-project-row");
+        const label=$("div","home-project-label");
+        label.append($("strong","",p.name),$("small","muted",p.totalTasks+" tarefas"));
+        const total=Number(p.totalTasks)||0,completed=Number(p.completedTasks)||0;
+        const progress=$("div","home-progress"),bar=$("span");bar.style.width=(total?Math.round(completed/total*100):0)+"%";progress.append(bar);
+        line.append(label,progress,$("span","muted small",total?Math.round(completed/total*100)+"%":"—"));
+        projectPanel.append(line);
+      }
+    }
+    const activityPanel=widget("activity","Atividade recente",null);
+    if(activityPanel){
+      if(!data.activity.items.length)activityPanel.append(emptyState("clock","Sem atividade","A atividade autorizada aparecerá aqui."));
+      for(const a of data.activity.items){
+        const line=$("div","activity-row"),mark=$("span","activity-mark");mark.append(glyph("tasks"));
+        const detail=$("div","activity-detail");
+        detail.append($("strong","","Tarefa criada"),$("span","",a.title+" · "+a.projectName));
+        line.append(mark,detail);activityPanel.append(line);
+      }
+    }
+  }catch(ex){
+    if(state.workspace!==wid||state.page!=="dashboard")return;
+    loading.replaceChildren($("strong","","Não foi possível carregar a Home."),$("p","muted",ex.message));
+    loading.append(button("Tentar novamente",drawDashboard,"btn ghost"));
+  }
+}
+function homePreferencesDialog(prefs,save){
+  const overlay=$("div","dialog"),box=$("div","box"),form=$("form","form");
+  const title=$("h2","","Personalizar Home"),description=$("p","muted","Escolhe os módulos visíveis na Home Balanced.");
+  const hidden=new Set((prefs.hiddenWidgets||"").split(",").filter(Boolean));
+  const options=[["tasks","As minhas prioridades"],["infrastructure","Infraestrutura"],["projects","Projetos ativos"],["activity","Atividade recente"]];
+  form.append(title,description);
+  const checks=new Map();
+  for(const [key,label] of options){
+    const row=$("label","home-preference-row"),inputEl=$("input");inputEl.type="checkbox";inputEl.checked=!hidden.has(key);
+    row.append($("span","",label),inputEl);form.append(row);checks.set(key,inputEl);
+  }
+  const actions=$("div","row"),cancel=button("Cancelar",()=>overlay.remove(),"btn ghost");
+  const submit=$("button","btn","Guardar");submit.type="submit";actions.append(cancel,submit);form.append(actions);
+  form.onsubmit=async event=>{
+    event.preventDefault();submit.disabled=true;
+    try{
+      await save({layout:"balanced",hiddenWidgets:options.filter(([key])=>!checks.get(key).checked).map(([key])=>key).join(",")});
+      overlay.remove();
+    }catch(ex){error(ex);}finally{submit.disabled=false;}
+  };
+  box.append(form);overlay.append(box);document.body.append(overlay);
 }
 async function drawProject(){
   if(state.timer){clearInterval(state.timer);state.timer=null;}
