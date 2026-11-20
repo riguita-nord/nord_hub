@@ -101,3 +101,37 @@ body{background:var(--nw-bg)}
 @media(max-width:1120px){.dashboard-bottom{grid-template-columns:1fr}.hero.dashboard-hero{align-items:flex-start}.dashboard-hero h1{font-size:24px}.app{grid-template-columns:64px 200px minmax(0,1fr)}}
 @media(max-width:810px){.dashboard-hero{flex-direction:column}.dashboard-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.main{padding:20px}.top{padding:0 14px}.user-name{display:none}}
 @media(max-width:680px){.app{grid-template-columns:55px minmax(0,1fr);grid-template-rows:54px auto minmax(0,1fr)}.brand{grid-column:1;overflow:hidden;padding:0 10px}.brand span{display:none}.top{grid-column:2}.rail{grid-column:1;grid-row:2/4;padding:10px 5px}.rail button{width:42px;height:42px}.nav{grid-column:2;grid-row:2;flex-direction:row;align-items:center;overflow-x:auto;padding:6px;gap:2px}.nav .nav-workspace-name,.nav h3,.nav .bottom{display:none}.nav .nav-link{min-height:37px;padding:8px 10px;flex:none;font-size:12px}.main{grid-column:2;grid-row:3;padding:16px}.dashboard-metrics{gap:8px}.dashboard-metrics .stat{min-height:77px;padding:10px;gap:9px}.stat-mark{width:36px;height:36px}.stat-mark .ui-icon{width:19px;height:19px}.dashboard-metrics .stat b{font-size:22px}.dashboard-metrics .stat .muted{font-size:11px}.dashboard-projects{padding:14px}.dashboard-folder-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hero.dashboard-hero{padding:19px}.top-logout{padding:7px}.top-search{min-width:0}.project-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+
+/* Nord Hub Home Balanced (scoped to dashboard; preserves other pages) */
+.home-heading{display:flex;justify-content:space-between;align-items:center;gap:20px;margin-bottom:20px}
+.home-heading h1{font-size:28px;letter-spacing:-.6px;margin:7px 0}
+.home-heading p{margin:0}
+.home-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin-bottom:25px}
+.home-metric{min-height:95px;border:1px solid #383446;background:#1b1927;border-radius:14px;padding:18px;display:flex;align-items:center;gap:13px}
+.home-metric-icon{width:40px;height:40px;display:grid;place-items:center;background:#322546;color:#b994ed;border-radius:12px;flex:none}
+.home-metric-icon svg{width:20px;height:20px}
+.home-metric b{font-size:27px;display:block;line-height:1.2}
+.home-metric .muted{font-size:12px;white-space:nowrap}
+.home-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
+.home-toolbar h2{font-size:18px;margin:0}
+.home-widget-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
+.home-widget{min-height:240px;min-width:0}
+.home-widget .task-row{flex-wrap:wrap}
+.home-widget .empty-state{min-height:165px}
+.home-infra-line{display:flex;align-items:center;justify-content:space-between;border-top:1px solid #302b3d;padding:13px 0}
+.home-status{font-size:11px;color:#bab3cc}
+.home-status.online{color:#7edcaa}.home-status.offline{color:#f397a2}.home-status.warning{color:#f2ca82}
+.home-project-row{display:flex;align-items:center;gap:12px;border:0;border-top:1px solid #332d40;background:none;color:inherit;width:100%;text-align:left;padding:15px 0}
+.home-project-row:hover{background:#272133}
+.home-project-label{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.home-project-label strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.home-progress{height:6px;background:#393148;border-radius:999px;overflow:hidden;width:25%;min-width:40px}
+.home-progress span{height:100%;display:block;background:#9973d4;border-radius:999px}
+.home-attention{padding:14px 18px;border-left:3px solid #e7a35b;background:#30251e;margin-bottom:14px;border-radius:8px}
+.home-loading{min-height:140px}
+.home-preference-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0}
+.home-preference-row input{width:19px;height:19px;accent-color:#9762e4}
+@media(max-width:1180px){.home-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:960px){.home-widget-grid{grid-template-columns:1fr}.home-heading{align-items:flex-start;flex-direction:column}}
+@media(max-width:680px){.home-metric{padding:12px;min-height:75px;gap:8px}.home-metric-icon{width:31px;height:31px}.home-metric b{font-size:21px}.home-metric .muted{font-size:10px;white-space:normal}.home-heading h1{font-size:24px}}
