@@ -61,6 +61,7 @@ public final class CoreServer {
             s.execute("CREATE TABLE IF NOT EXISTS documents(id INTEGER PRIMARY KEY,project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,title TEXT NOT NULL,url TEXT NOT NULL,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)");
             s.execute("CREATE TABLE IF NOT EXISTS messages(id INTEGER PRIMARY KEY,project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,user_id INTEGER NOT NULL REFERENCES users(id),body TEXT NOT NULL,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)");
             s.execute("CREATE INDEX IF NOT EXISTS messages_project ON messages(project_id,id)");
+            s.execute("CREATE TABLE IF NOT EXISTS home_preferences(user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,workspace_id INTEGER NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,layout TEXT NOT NULL DEFAULT 'balanced' CHECK(layout IN ('balanced','work','operations')),hidden_widgets TEXT NOT NULL DEFAULT '',PRIMARY KEY(user_id,workspace_id))");
         }
     }
     private static void handle(HttpExchange e) {
@@ -133,6 +134,28 @@ public final class CoreServer {
                     send(e,200,Map.of("ok",true));return;
                 }
             }
+        }
+        if(path.equals("/api/home") && method.equals("GET")){
+            long wid=number(queryParam(e,"workspaceId"));
+            workspaceAccess(c,user,wid);
+            send(e,200,homeDashboard(c,user,wid));return;
+        }
+        if(path.equals("/api/home/preferences")){
+            long wid=number(queryParam(e,"workspaceId"));
+            workspaceAccess(c,user,wid);
+            if(method.equals("GET")){send(e,200,homePreferences(c,user,wid));return;}
+            if(method.equals("PATCH")){
+                JsonNode j=body(e);
+                String layout=choice(j,"layout",Set.of("balanced","work","operations"),"balanced");
+                String hidden=optional(j,"hiddenWidgets",120);
+                if(!hidden.isBlank())for(String key:hidden.split(",")){
+                    if(!Set.of("tasks","infrastructure","projects","activity").contains(key))
+                        throw new Failure(400,"invalid_widget");
+                }
+                update(c,"INSERT INTO home_preferences(user_id,workspace_id,layout,hidden_widgets) VALUES(?,?,?,?) ON CONFLICT(user_id,workspace_id) DO UPDATE SET layout=excluded.layout,hidden_widgets=excluded.hidden_widgets",user.id,wid,layout,hidden);
+                send(e,200,homePreferences(c,user,wid));return;
+            }
+            throw new Failure(405,"method_not_allowed");
         }
         if(path.equals("/api/projects")){
             long wid=number(queryParam(e,"workspaceId"));
@@ -253,6 +276,41 @@ public final class CoreServer {
         String h=e.getRequestHeaders().getFirst("Cookie");if(h==null)return "";
         for(String p:h.split(";")){String[] x=p.trim().split("=",2);if(x.length==2 && x[0].equals("nord_session"))return x[1];}
         return "";
+    }
+    private static Map<String,Object> homePreferences(Connection c,User u,long wid)throws SQLException{
+        List<Map<String,Object>> rows=query(c,"SELECT layout,hidden_widgets AS hiddenWidgets FROM home_preferences WHERE user_id=? AND workspace_id=?",u.id,wid);
+        return rows.isEmpty()?Map.of("layout","balanced","hiddenWidgets",""):rows.get(0);
+    }
+    private static Map<String,Object> homeDashboard(Connection c,User u,long wid)throws SQLException{
+        // Every project/task query is scoped to BOTH workspace and project membership.
+        List<Map<String,Object>> projects=query(c,
+            "SELECT p.id,p.name,p.description,COUNT(t.id) AS totalTasks,COALESCE(SUM(CASE WHEN t.status='DONE' THEN 1 ELSE 0 END),0) AS completedTasks FROM projects p JOIN project_members pm ON pm.project_id=p.id AND pm.user_id=? LEFT JOIN tasks t ON t.project_id=p.id WHERE p.workspace_id=? GROUP BY p.id,p.name,p.description ORDER BY p.id DESC LIMIT 30",u.id,wid);
+        List<Map<String,Object>> tasks=query(c,
+            "SELECT t.id,t.title,t.status,t.priority,t.due_date AS dueDate,t.created_at AS createdAt,p.id AS projectId,p.name AS projectName FROM tasks t JOIN projects p ON p.id=t.project_id JOIN project_members pm ON pm.project_id=p.id AND pm.user_id=? WHERE p.workspace_id=? ORDER BY CASE WHEN t.status='DONE' THEN 1 ELSE 0 END,CASE WHEN t.due_date IS NOT NULL AND t.due_date<date('now') THEN 0 WHEN t.due_date=date('now') THEN 1 ELSE 2 END,CASE t.priority WHEN 'HIGH' THEN 0 WHEN 'MEDIUM' THEN 1 ELSE 2 END,COALESCE(t.due_date,'9999-12-31'),t.id DESC LIMIT 80",u.id,wid);
+        long open=scalar(c,"SELECT COUNT(*) FROM tasks t JOIN projects p ON p.id=t.project_id JOIN project_members pm ON pm.project_id=p.id AND pm.user_id=? WHERE p.workspace_id=? AND t.status<>'DONE'",u.id,wid);
+        List<Map<String,Object>> activity=query(c,
+            "SELECT t.id,t.title,t.created_at AS createdAt,p.name AS projectName,'task_created' AS type FROM tasks t JOIN projects p ON p.id=t.project_id JOIN project_members pm ON pm.project_id=p.id AND pm.user_id=? WHERE p.workspace_id=? ORDER BY t.created_at DESC,t.id DESC LIMIT 8",u.id,wid);
+        Map<String,Object> summary=new LinkedHashMap<>();
+        summary.put("activeProjects",scalar(c,"SELECT COUNT(*) FROM projects p JOIN project_members pm ON pm.project_id=p.id AND pm.user_id=? WHERE p.workspace_id=?",u.id,wid));
+        summary.put("myOpenTasks",open);
+        // No connected infrastructure provider exists in the current backend.
+        // Never invent health, online counts or incident totals.
+        summary.put("onlineServers",null);summary.put("totalServers",null);summary.put("openAlerts",null);
+        Map<String,Object> infrastructure=new LinkedHashMap<>();
+        infrastructure.put("status","not_connected");
+        infrastructure.put("updatedAt",null);
+        infrastructure.put("items",List.of());
+        return Map.of(
+            "workspaceId",wid,
+            "generatedAt",java.time.Instant.now().toString(),
+            "layout","balanced",
+            "summary",summary,
+            "tasks",Map.of("status","ok","items",tasks),
+            "projects",Map.of("status","ok","items",projects),
+            "activity",Map.of("status","ok","items",activity),
+            "infrastructure",infrastructure,
+            "attention",Map.of("status","ok","items",List.of())
+        );
     }
     private static void workspaceAccess(Connection c,User u,long id)throws SQLException {
         if(scalar(c,"SELECT COUNT(*) FROM workspace_members WHERE workspace_id=? AND user_id=?",id,u.id)==0)throw new Failure(404,"workspace_not_found");
